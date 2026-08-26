@@ -11,9 +11,12 @@ export default function Header() {
   const pathname = usePathname();
 
   const getPageTitle = () => {
+    if (pathname === "/customers/add" || pathname === "/customers/new") return "Customer_Add Customer";
+    if (pathname.startsWith("/customers")) return "Customer_Overview";
+    if (pathname.startsWith("/sales-pos/return")) return "Sales & POS_Return";
+    if (pathname.startsWith("/sales-pos/sales")) return "Sales & POS_Sales";
     if (pathname.startsWith("/sales-pos")) return "Sales & POS_POS";
     if (pathname.startsWith("/ceo-overview")) return "CEO Overview";
-    if (pathname.startsWith("/customers")) return "Customers";
     if (pathname.startsWith("/inventory")) return "Inventory";
     if (pathname.startsWith("/purchases")) return "Purchases";
     if (pathname.startsWith("/hrm")) return "HRM";

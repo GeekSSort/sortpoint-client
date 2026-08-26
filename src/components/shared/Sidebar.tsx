@@ -44,9 +44,9 @@ export default function Sidebar() {
   const isSalesPosRoute = pathname.startsWith("/sales-pos");
   const [salesPosOpen, setSalesPosOpen] = useState(isSalesPosRoute);
 
-  const isPosActive = pathname === "/sales-pos" || pathname === "/sales-pos/pos";
-  const isSalesActive = pathname === "/sales-pos/sales";
-  const isReturnActive = pathname === "/sales-pos/return";
+  const isReturnActive = pathname.startsWith("/sales-pos/return");
+  const isSalesActive = pathname.startsWith("/sales-pos/sales");
+  const isPosActive = (pathname === "/sales-pos" || pathname === "/sales-pos/pos") && !isReturnActive && !isSalesActive;
 
   return (
     <aside

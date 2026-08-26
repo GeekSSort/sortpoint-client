@@ -13,42 +13,45 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
-import { CustomerRecord } from "@/types/customer";
-import { CustomerService, initialCustomersData } from "@/lib/services/customer.service";
+import { ReturnRecord } from "@/types/returns";
+import { ReturnsService, initialReturnsData } from "@/lib/services/returns.service";
 
-export default function CustomersPage() {
-  const [customers, setCustomers] = useState<CustomerRecord[]>(initialCustomersData);
+export default function ReturnPage() {
+  const [returns, setReturns] = useState<ReturnRecord[]>(initialReturnsData);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // New Customer Modal state
-  const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
-  const [newCustomerType, setNewCustomerType] = useState<"Regular" | "VIP" | "Premium">("Regular");
+  // New return form state
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [refundAmount, setRefundAmount] = useState<number | "">("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   useEffect(() => {
-    CustomerService.getCustomers({ search: searchQuery }).then((res) => {
-      setCustomers(res.data);
+    ReturnsService.getReturns({ search: searchQuery }).then((res) => {
+      setReturns(res.data);
     });
   }, [searchQuery]);
 
-  const handleCreateCustomer = async (e: React.FormEvent) => {
+  const handleCreateReturn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCustomerName || !newCustomerPhone) return;
+    if (!invoiceNo || !customerName || !refundAmount) return;
 
-    const created = await CustomerService.createCustomer({
-      name: newCustomerName,
-      phone: newCustomerPhone,
-      type: newCustomerType,
+    const newRecord = await ReturnsService.createReturn({
+      invoiceNo,
+      customerName,
+      refundAmount: Number(refundAmount),
+      paymentMethod,
     });
 
-    setCustomers((prev) => [created, ...prev]);
+    setReturns((prev) => [newRecord, ...prev]);
     setIsAddModalOpen(false);
-    setNewCustomerName("");
-    setNewCustomerPhone("");
+    setInvoiceNo("");
+    setCustomerName("");
+    setRefundAmount("");
   };
 
   return (
@@ -58,10 +61,10 @@ export default function CustomersPage() {
         {/* Title & Subtitle */}
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            Customer
+            Return
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Manage all customers, transactions, and outstanding balances.
+            Manage product returns, refund &amp; return request
           </p>
         </div>
 
@@ -78,7 +81,7 @@ export default function CustomersPage() {
 
           {/* Add New Button */}
           <Link
-            href="/customers/add"
+            href="/sales-pos/return/new"
             className="flex items-center gap-2 px-5 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -87,12 +90,12 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Customer List Container Card */}
+      {/* Return List Container Card */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Card Header: Customer List Title + Search & Filter */}
+        {/* Card Header: Return List Title + Search & Filter */}
         <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
           <h3 className="text-base font-bold text-gray-900">
-            Customer List
+            Return List
           </h3>
 
           <div className="flex items-center gap-2.5">
@@ -111,7 +114,7 @@ export default function CustomersPage() {
             {/* Filter Funnel Button */}
             <button
               type="button"
-              title="Filter customers"
+              title="Filter returns"
               className="p-2 border border-gray-200 hover:border-gray-300 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
             >
               <Filter className="w-4 h-4" />
@@ -124,69 +127,69 @@ export default function CustomersPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
-                <th className="py-3.5 px-5 font-semibold">Customer ID</th>
+                <th className="py-3.5 px-5 font-semibold">Return No.</th>
+                <th className="py-3.5 px-5 font-semibold">Invoice No.</th>
+                <th className="py-3.5 px-5 font-semibold">Date &amp; Time</th>
                 <th className="py-3.5 px-5 font-semibold">Customer</th>
-                <th className="py-3.5 px-5 font-semibold">Phone</th>
-                <th className="py-3.5 px-5 font-semibold">Type</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Order</th>
-                <th className="py-3.5 px-5 font-semibold">Total Spent</th>
-                <th className="py-3.5 px-5 font-semibold">Due</th>
+                <th className="py-3.5 px-5 font-semibold">Total Amount</th>
+                <th className="py-3.5 px-5 font-semibold">Refund</th>
+                <th className="py-3.5 px-5 font-semibold">Payment</th>
                 <th className="py-3.5 px-5 font-semibold text-center">Status</th>
                 <th className="py-3.5 px-5 font-semibold text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-xs font-medium text-gray-700">
-              {customers.map((item, idx) => (
+              {returns.map((item, idx) => (
                 <tr
                   key={`${item.id}-${idx}`}
                   className="hover:bg-gray-50/80 transition-colors"
                 >
-                  {/* Customer ID */}
+                  {/* Return No. */}
                   <td className="py-4 px-5 text-gray-600 font-medium">
-                    {item.customerId}
+                    {item.returnNo}
+                  </td>
+
+                  {/* Invoice No. */}
+                  <td className="py-4 px-5 text-gray-500">
+                    {item.invoiceNo}
+                  </td>
+
+                  {/* Date & Time */}
+                  <td className="py-4 px-5 text-gray-500">
+                    {item.dateTime}
                   </td>
 
                   {/* Customer */}
                   <td className="py-4 px-5 font-semibold text-gray-900">
-                    {item.name}
+                    {item.customerName}
                   </td>
 
-                  {/* Phone */}
-                  <td className="py-4 px-5 text-gray-500">
-                    {item.phone}
-                  </td>
-
-                  {/* Type */}
-                  <td className="py-4 px-5 text-gray-700 font-medium">
-                    {item.type}
-                  </td>
-
-                  {/* Order Count */}
-                  <td className="py-4 px-5 text-center font-bold text-gray-900">
-                    {item.orderCount}
-                  </td>
-
-                  {/* Total Spent */}
+                  {/* Total Amount */}
                   <td className="py-4 px-5 font-bold text-gray-900">
-                    {item.totalSpentFormatted}
+                    {item.totalAmountFormatted}
                   </td>
 
-                  {/* Due Amount */}
+                  {/* Refund Amount */}
                   <td className="py-4 px-5 font-bold text-gray-900">
-                    {item.dueAmountFormatted}
+                    {item.refundAmountFormatted}
+                  </td>
+
+                  {/* Payment Method */}
+                  <td className="py-4 px-5 text-gray-600">
+                    {item.paymentMethod}
                   </td>
 
                   {/* Status Badge */}
                   <td className="py-4 px-5 text-center">
-                    {item.status === "Active" ? (
+                    {item.status === "Paid" ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Active
+                        Paid
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-600 border border-orange-100">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                        Inactive
+                        Unpaid
                       </span>
                     )}
                   </td>
@@ -211,7 +214,7 @@ export default function CustomersPage() {
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 text-xs text-gray-500">
           {/* Entries summary */}
           <div className="flex items-center gap-4">
-            <span>Showing 1 to {Math.min(pageSize, customers.length)} of 50 entries</span>
+            <span>Showing 1 to {Math.min(pageSize, returns.length)} of 50 entries</span>
 
             {/* Page Size Selector */}
             <div className="relative inline-flex items-center">
@@ -282,12 +285,12 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Add New Customer Modal */}
+      {/* Add New Return Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-              <h4 className="text-base font-bold text-gray-900">Add New Customer</h4>
+              <h4 className="text-base font-bold text-gray-900">Create New Return</h4>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -297,7 +300,21 @@ export default function CustomersPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateCustomer} className="flex flex-col gap-3.5">
+            <form onSubmit={handleCreateReturn} className="flex flex-col gap-3.5">
+              <div>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">
+                  Invoice Number
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. INV-2024-00125"
+                  value={invoiceNo}
+                  onChange={(e) => setInvoiceNo(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
                   Customer Name
@@ -306,39 +323,41 @@ export default function CustomersPage() {
                   type="text"
                   required
                   placeholder="e.g. Rahim Uddin"
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. +880 1712-456 890"
-                  value={newCustomerPhone}
-                  onChange={(e) => setNewCustomerPhone(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">
+                    Refund Amount (৳)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 5000"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
 
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Customer Type
-                </label>
-                <select
-                  value={newCustomerType}
-                  onChange={(e) => setNewCustomerType(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-amber-400"
-                >
-                  <option value="Regular">Regular</option>
-                  <option value="VIP">VIP</option>
-                  <option value="Premium">Premium</option>
-                </select>
+                <div>
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="bKash">bKash</option>
+                    <option value="Card">Card</option>
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 mt-2">
@@ -353,7 +372,7 @@ export default function CustomersPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#F4B41A] hover:bg-[#E5A612] shadow-xs transition-colors"
                 >
-                  Save Customer
+                  Submit Return
                 </button>
               </div>
             </form>
@@ -363,3 +382,4 @@ export default function CustomersPage() {
     </div>
   );
 }
+
