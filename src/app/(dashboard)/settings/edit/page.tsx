@@ -3,15 +3,32 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudUpload, CheckCircle2 } from "lucide-react";
-import { initialCompanyProfile, SettingsService } from "@/lib/services/settings.service";
+import { SettingsService } from "@/services";
+import { CompanyProfile } from "@/types/settings";
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState(initialCompanyProfile);
+  const [profile, setProfile] = useState<CompanyProfile>({
+    companyName: "ABC Retail Ltd.",
+    businessType: "Private Limited",
+    companyEmail: "info@abcretail.com",
+    phoneNumber: "+880 1712-345678",
+    website: "www.abcretail.com",
+    taxId: "123456789",
+    tradeLicenseBin: "123456789",
+    currency: "BDT — Bangladeshi Taka",
+    logoUrl: "/image1.png",
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const handleFieldChange = (field: keyof typeof profile, value: string) => {
+  React.useEffect(() => {
+    SettingsService.getCompanyProfile().then((data) => {
+      if (data) setProfile(data);
+    });
+  }, []);
+
+  const handleFieldChange = (field: keyof CompanyProfile, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 

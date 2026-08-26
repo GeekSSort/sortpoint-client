@@ -3,10 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Calendar, CheckCircle2 } from "lucide-react";
-import { initialProductCatalog } from "@/lib/mock-pos-data";
+import { StockService, PosService } from "@/services";
+import { ProductItem } from "@/types/pos";
 
 export default function AddStockPage() {
   const router = useRouter();
+
+  // Products state
+  const [productsList, setProductsList] = useState<ProductItem[]>([]);
 
   // Form State
   const [selectedProduct, setSelectedProduct] = useState("");
@@ -20,6 +24,12 @@ export default function AddStockPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
+
+  React.useEffect(() => {
+    PosService.getProducts().then((data) => {
+      setProductsList(data);
+    });
+  }, []);
 
   // Computed New Total Stock
   const currentNum = parseInt(currentStock, 10) || 0;
@@ -37,13 +47,24 @@ export default function AddStockPage() {
     if (!selectedProduct) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await StockService.addStock({
+        productName: selectedProduct,
+        sku,
+        warehouse: warehouse || "Main Central Hub",
+        currentStock: currentNum,
+        addQuantity: addNum,
+        date,
+      });
       setSuccessMessage(true);
       setTimeout(() => {
         router.push("/inventory/stock");
       }, 1400);
-    }, 800);
+    } catch (err) {
+      console.error("Failed to add stock:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -90,7 +111,7 @@ export default function AddStockPage() {
 
                 {isProductOpen && (
                   <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-30 max-h-48 overflow-y-auto">
-                    {initialProductCatalog.map((prod) => (
+                    {productsList.map((prod) => (
                       <button
                         key={prod.id}
                         type="button"

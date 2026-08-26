@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
-import { RolesService } from "@/lib/services/roles.service";
+import { RoleService } from "@/services";
 
 export default function AddUserPage() {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function AddUserPage() {
 
     setIsSubmitting(true);
     try {
-      await RolesService.createUser({
+      await RoleService.createUser({
         name: selectedEmployee || "New User",
         phone: phoneNumber || "+880 1712-456 890",
         mail: emailAddress || "info@abctraders.com",

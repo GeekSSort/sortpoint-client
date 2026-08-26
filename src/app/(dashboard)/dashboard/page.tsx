@@ -9,7 +9,7 @@ import RecentActivitiesTable from "@/components/modules/dashboard/RecentActiviti
 import SalesOverviewModal from "@/components/modules/dashboard/SalesOverviewModal";
 import OrderListModal from "@/components/modules/dashboard/OrderListModal";
 import CustomerListModal from "@/components/modules/dashboard/CustomerListModal";
-import { fetchDashboardData, initialDashboardData } from "@/lib/mock-dashboard-data";
+import { DashboardService, initialDashboardData } from "@/services";
 import { DashboardResponse } from "@/types/dashboard";
 import { OverviewModalType } from "@/types/overview";
 
@@ -22,7 +22,7 @@ export default function DashboardPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetchDashboardData();
+        const res = await DashboardService.getDashboardData();
         setData(res);
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);

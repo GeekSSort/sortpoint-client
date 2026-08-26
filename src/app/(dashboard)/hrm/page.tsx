@@ -16,10 +16,10 @@ import {
   CreditCard,
 } from "lucide-react";
 import { EmployeeRecord } from "@/types/hrm";
-import { HrmService, initialEmployeesData } from "@/lib/services/hrm.service";
+import { HrmService } from "@/services";
 
 export default function HrmPage() {
-  const [employees, setEmployees] = useState<EmployeeRecord[]>(initialEmployeesData);
+  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
@@ -105,7 +105,7 @@ export default function HrmPage() {
         {/* Card Header: Product List Title + Search & Filter */}
         <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
           <h3 className="text-base font-bold text-gray-900">
-            Product List
+            Employee List
           </h3>
 
           <div className="flex items-center gap-2.5">

@@ -9,16 +9,16 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { TransferRecord } from "@/types/transfers";
-import { TransfersService, initialTransfersData } from "@/lib/services/transfers.service";
+import { TransferService } from "@/services";
 
 export default function TransfersPage() {
-  const [transfers, setTransfers] = useState<TransferRecord[]>(initialTransfersData);
+  const [transfers, setTransfers] = useState<TransferRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    TransfersService.getTransfers({ search: searchQuery }).then((res) => {
+    TransferService.getTransfers({ search: searchQuery }).then((res) => {
       setTransfers(res.data);
     });
   }, [searchQuery]);

@@ -14,10 +14,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { StockItem } from "@/types/stock";
-import { StockService, initialStockData } from "@/lib/services/stock.service";
+import { StockService } from "@/services";
 
 export default function StockPage() {
-  const [stockItems, setStockItems] = useState<StockItem[]>(initialStockData);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);

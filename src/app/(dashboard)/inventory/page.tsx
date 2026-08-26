@@ -14,10 +14,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { InventoryProduct } from "@/types/inventory";
-import { InventoryService, initialInventoryProducts } from "@/lib/services/inventory.service";
+import { InventoryService } from "@/services";
 
 export default function InventoryProductPage() {
-  const [products, setProducts] = useState<InventoryProduct[]>(initialInventoryProducts);
+  const [products, setProducts] = useState<InventoryProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);

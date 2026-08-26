@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-import { mockOrderList } from "@/lib/mock-overview-data";
+import { OverviewService } from "@/services";
+import { OrderListItem } from "@/types/overview";
 
 interface OrderListModalProps {
   isOpen: boolean;
@@ -11,15 +12,22 @@ interface OrderListModalProps {
 }
 
 export default function OrderListModal({ isOpen, onClose }: OrderListModalProps) {
+  const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"All" | "Received" | "Pending">("All");
 
+  useEffect(() => {
+    OverviewService.getOrders().then((data) => {
+      setOrders(data);
+    });
+  }, []);
+
   if (!isOpen) return null;
 
-  const filteredData = mockOrderList.filter((item) => {
+  const filteredData = orders.filter((item) => {
     const matchesSearch =
       item.purchaseId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.supplier.name.toLowerCase().includes(searchQuery.toLowerCase());

@@ -14,10 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { ReturnRecord } from "@/types/returns";
-import { ReturnsService, initialReturnsData } from "@/lib/services/returns.service";
+import { ReturnService } from "@/services";
 
 export default function ReturnPage() {
-  const [returns, setReturns] = useState<ReturnRecord[]>(initialReturnsData);
+  const [returns, setReturns] = useState<ReturnRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
@@ -31,7 +31,7 @@ export default function ReturnPage() {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   useEffect(() => {
-    ReturnsService.getReturns({ search: searchQuery }).then((res) => {
+    ReturnService.getReturns({ search: searchQuery }).then((res) => {
       setReturns(res.data);
     });
   }, [searchQuery]);
@@ -40,7 +40,7 @@ export default function ReturnPage() {
     e.preventDefault();
     if (!invoiceNo || !customerName || !refundAmount) return;
 
-    const newRecord = await ReturnsService.createReturn({
+    const newRecord = await ReturnService.processRefund({
       invoiceNo,
       customerName,
       refundAmount: Number(refundAmount),

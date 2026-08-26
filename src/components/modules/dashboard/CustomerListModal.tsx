@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-import { mockCustomerList } from "@/lib/mock-overview-data";
+import { OverviewService } from "@/services";
+import { CustomerListItem } from "@/types/overview";
 
 interface CustomerListModalProps {
   isOpen: boolean;
@@ -10,15 +11,22 @@ interface CustomerListModalProps {
 }
 
 export default function CustomerListModal({ isOpen, onClose }: CustomerListModalProps) {
+  const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive">("All");
 
+  useEffect(() => {
+    OverviewService.getCustomers().then((data) => {
+      setCustomers(data);
+    });
+  }, []);
+
   if (!isOpen) return null;
 
-  const filteredData = mockCustomerList.filter((item) => {
+  const filteredData = customers.filter((item) => {
     const matchesSearch =
       item.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.customerId.toLowerCase().includes(searchQuery.toLowerCase()) ||

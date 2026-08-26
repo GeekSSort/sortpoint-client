@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { 
   Search, 
@@ -11,7 +11,7 @@ import {
   ChevronDown 
 } from "lucide-react";
 import { ProductItem, ProductCategory } from "@/types/pos";
-import { initialProductCatalog } from "@/lib/mock-pos-data";
+import { PosService } from "@/services";
 
 interface ProductGridProps {
   onSelectProduct?: (product: ProductItem) => void;
@@ -26,20 +26,20 @@ const categories: ProductCategory[] = [
 ];
 
 export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
+  const [products, setProducts] = useState<ProductItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>("All Categories");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
 
-  const filteredProducts = initialProductCatalog.filter((item) => {
-    const matchesCategory =
-      selectedCategory === "All Categories" || item.category === selectedCategory;
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    PosService.getProducts(selectedCategory, searchQuery).then((data) => {
+      setProducts(data);
+    });
+  }, [selectedCategory, searchQuery]);
+
+  const filteredProducts = products;
 
   return (
     <div className="flex flex-col gap-4 flex-1 select-none">

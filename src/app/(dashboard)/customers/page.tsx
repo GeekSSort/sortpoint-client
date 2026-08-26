@@ -14,10 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { CustomerRecord } from "@/types/customer";
-import { CustomerService, initialCustomersData } from "@/lib/services/customer.service";
+import { CustomerService } from "@/services";
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<CustomerRecord[]>(initialCustomersData);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);

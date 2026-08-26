@@ -11,10 +11,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PayrollRecord } from "@/types/payroll";
-import { PayrollService, initialPayrollData } from "@/lib/services/payroll.service";
+import { PayrollService } from "@/services";
 
 export default function PayrollPage() {
-  const [payroll, setPayroll] = useState<PayrollRecord[]>(initialPayrollData);
+  const [payroll, setPayroll] = useState<PayrollRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);

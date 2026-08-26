@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudUpload, ChevronDown, CheckCircle2 } from "lucide-react";
-import { HrmService } from "@/lib/services/hrm.service";
+import { HrmService } from "@/services";
 
 export default function AddEmployeePage() {
   const router = useRouter();

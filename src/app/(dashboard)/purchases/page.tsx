@@ -12,17 +12,17 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { PurchaseRecord } from "@/types/purchases";
-import { PurchasesService, initialPurchasesData } from "@/lib/services/purchases.service";
+import { PurchaseService } from "@/services";
 
 export default function PurchaseHistoryPage() {
-  const [purchases, setPurchases] = useState<PurchaseRecord[]>(initialPurchasesData);
+  const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    PurchasesService.getPurchases({ search: searchQuery }).then((res) => {
+    PurchaseService.getPurchases({ search: searchQuery }).then((res) => {
       setPurchases(res.data);
     });
   }, [searchQuery]);

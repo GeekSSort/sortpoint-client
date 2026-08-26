@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
-import { CustomerService } from "@/lib/services/customer.service";
+import { CustomerService } from "@/services";
 
 export default function AddCustomerPage() {
   const router = useRouter();

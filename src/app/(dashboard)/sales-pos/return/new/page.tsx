@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, CheckCircle2 } from "lucide-react";
-import { initialProductCatalog } from "@/lib/mock-pos-data";
+import { PosService, ReturnService } from "@/services";
 
 interface ReturnOrderItem {
   id: string;
@@ -17,37 +17,44 @@ interface ReturnOrderItem {
 
 export default function NewReturnPage() {
   const router = useRouter();
-  const [items, setItems] = useState<ReturnOrderItem[]>([
-    {
-      id: "item-1",
-      name: "Wireless Headphone",
-      image: initialProductCatalog[0].image,
-      priceFormatted: "৳2,450",
-      price: 2450,
-      qty: 1,
-    },
-    {
-      id: "item-2",
-      name: "Smart Watch",
-      image: initialProductCatalog[1].image,
-      priceFormatted: "৳2,450",
-      price: 2450,
-      qty: 1,
-    },
-    {
-      id: "item-3",
-      name: "Bluetooth Speaker",
-      image: initialProductCatalog[2].image,
-      priceFormatted: "৳2,450",
-      price: 2450,
-      qty: 1,
-    },
-  ]);
-
+  const [items, setItems] = useState<ReturnOrderItem[]>([]);
   const [customerName, setCustomerName] = useState("Rahman Uddin");
   const [customerType, setCustomerType] = useState("Walk-in Customer");
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
+
+  React.useEffect(() => {
+    PosService.getProducts().then((products) => {
+      if (products.length >= 3) {
+        setItems([
+          {
+            id: "item-1",
+            name: products[0].name,
+            image: products[0].image,
+            priceFormatted: products[0].priceFormatted,
+            price: products[0].price,
+            qty: 1,
+          },
+          {
+            id: "item-2",
+            name: products[1].name,
+            image: products[1].image,
+            priceFormatted: products[1].priceFormatted,
+            price: products[1].price,
+            qty: 1,
+          },
+          {
+            id: "item-3",
+            name: products[2].name,
+            image: products[2].image,
+            priceFormatted: products[2].priceFormatted,
+            price: products[2].price,
+            qty: 1,
+          },
+        ]);
+      }
+    });
+  }, []);
 
   const handleUpdateQty = (id: string, delta: number) => {
     setItems((prev) =>
@@ -63,14 +70,23 @@ export default function NewReturnPage() {
 
   const handleRefundNow = async () => {
     setIsProcessing(true);
-    // Simulate backend refund API call
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      const refundTotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      await ReturnService.processRefund({
+        invoiceNo: "INV-2024-00125",
+        customerName,
+        refundAmount: refundTotal,
+        paymentMethod: "Cash",
+      });
       setSuccessMessage(true);
       setTimeout(() => {
         router.push("/sales-pos/return");
       }, 1500);
-    }, 800);
+    } catch (err) {
+      console.error("Refund failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const totalItemsCount = items.reduce((sum, item) => sum + item.qty, 0);

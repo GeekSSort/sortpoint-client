@@ -14,10 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { SystemUserRecord } from "@/types/roles";
-import { RolesService, initialSystemUsersData } from "@/lib/services/roles.service";
+import { RoleService } from "@/services";
 
 export default function RolesPermissionsPage() {
-  const [users, setUsers] = useState<SystemUserRecord[]>(initialSystemUsersData);
+  const [users, setUsers] = useState<SystemUserRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,7 +30,7 @@ export default function RolesPermissionsPage() {
   const [role, setRole] = useState("Cashier");
 
   useEffect(() => {
-    RolesService.getUsers({ search: searchQuery }).then((res) => {
+    RoleService.getUsers({ search: searchQuery }).then((res) => {
       setUsers(res.data);
     });
   }, [searchQuery]);
@@ -39,7 +39,7 @@ export default function RolesPermissionsPage() {
     e.preventDefault();
     if (!name || !phone) return;
 
-    const created = await RolesService.createUser({
+    const created = await RoleService.createUser({
       name,
       phone,
       mail: mail || "info@abctraders.com",

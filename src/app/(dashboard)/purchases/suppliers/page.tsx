@@ -14,10 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { SupplierRecord } from "@/types/suppliers";
-import { SuppliersService, initialSuppliersData } from "@/lib/services/suppliers.service";
+import { SupplierService } from "@/services";
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState<SupplierRecord[]>(initialSuppliersData);
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,7 +29,7 @@ export default function SuppliersPage() {
   const [mail, setMail] = useState("");
 
   useEffect(() => {
-    SuppliersService.getSuppliers({ search: searchQuery }).then((res) => {
+    SupplierService.getSuppliers({ search: searchQuery }).then((res) => {
       setSuppliers(res.data);
     });
   }, [searchQuery]);
@@ -38,7 +38,7 @@ export default function SuppliersPage() {
     e.preventDefault();
     if (!name || !phone) return;
 
-    const created = await SuppliersService.createSupplier({
+    const created = await SupplierService.createSupplier({
       name,
       phone,
       mail: mail || "info@abctraders.com",

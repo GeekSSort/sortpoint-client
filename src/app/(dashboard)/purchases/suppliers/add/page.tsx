@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudUpload, CheckCircle2 } from "lucide-react";
-import { SuppliersService } from "@/lib/services/suppliers.service";
+import { SupplierService } from "@/services";
 
 export default function AddSupplierPage() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function AddSupplierPage() {
 
     setIsSubmitting(true);
     try {
-      await SuppliersService.createSupplier({
+      await SupplierService.createSupplier({
         name: supplierName,
         phone: phoneNumber || "+880 1912 345 680",
         mail: emailAddress || "info@abctraders.com",

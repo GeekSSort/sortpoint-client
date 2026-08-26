@@ -12,10 +12,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { SaleRecord } from "@/types/sales";
-import { SalesService, initialSalesData } from "@/lib/services/sales.service";
+import { SalesService } from "@/services";
 
 export default function SalesPage() {
-  const [sales, setSales] = useState<SaleRecord[]>(initialSalesData);
+  const [sales, setSales] = useState<SaleRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);

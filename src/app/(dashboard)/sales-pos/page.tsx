@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProductGrid from "@/components/modules/pos/ProductGrid";
 import CartPanel from "@/components/modules/pos/CartPanel";
 import { ProductItem, CartItem } from "@/types/pos";
-import { initialProductCatalog } from "@/lib/mock-pos-data";
+import { PosService } from "@/services";
 
 export default function SalesPosPage() {
-  // Initialized with the 3 default items matching the screenshot
-  const [cart, setCart] = useState<CartItem[]>([
-    { product: initialProductCatalog[0], quantity: 1 },
-    { product: initialProductCatalog[1], quantity: 1 },
-    { product: initialProductCatalog[2], quantity: 1 },
-  ]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    PosService.getProducts().then((products) => {
+      if (products.length >= 3) {
+        setCart([
+          { product: products[0], quantity: 1 },
+          { product: products[1], quantity: 1 },
+          { product: products[2], quantity: 1 },
+        ]);
+      }
+    });
+  }, []);
 
   const handleSelectProduct = (product: ProductItem) => {
     setCart((prev) => {

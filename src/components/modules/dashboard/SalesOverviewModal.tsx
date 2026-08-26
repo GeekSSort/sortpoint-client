@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-import { mockSalesOverviewList } from "@/lib/mock-overview-data";
+import { OverviewService } from "@/services";
+import { SalesOverviewItem } from "@/types/overview";
 
 interface SalesOverviewModalProps {
   isOpen: boolean;
@@ -10,15 +11,22 @@ interface SalesOverviewModalProps {
 }
 
 export default function SalesOverviewModal({ isOpen, onClose }: SalesOverviewModalProps) {
+  const [sales, setSales] = useState<SalesOverviewItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"All" | "Paid" | "Unpaid">("All");
 
+  useEffect(() => {
+    OverviewService.getSalesOverview().then((data) => {
+      setSales(data);
+    });
+  }, []);
+
   if (!isOpen) return null;
 
-  const filteredData = mockSalesOverviewList.filter((item) => {
+  const filteredData = sales.filter((item) => {
     const matchesSearch =
       item.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) ||

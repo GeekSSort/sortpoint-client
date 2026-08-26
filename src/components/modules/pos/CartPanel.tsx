@@ -14,7 +14,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 import { CartItem, Customer } from "@/types/pos";
-import { PosService } from "@/lib/services/pos.service";
+import { PosService } from "@/services";
 
 interface CartPanelProps {
   cart: CartItem[];

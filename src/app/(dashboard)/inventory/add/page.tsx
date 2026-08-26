@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CloudUpload, CheckCircle2 } from "lucide-react";
+import { InventoryService } from "@/services";
 
 export default function AddNewProductPage() {
   const router = useRouter();
@@ -35,13 +36,25 @@ export default function AddNewProductPage() {
     if (!productName) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await InventoryService.createProduct({
+        name: productName,
+        category: category || "Electronics",
+        brand: brand || "Generic",
+        purchasePrice: parseFloat(purchasePrice) || 0,
+        sellingPrice: parseFloat(sellingPrice) || 0,
+        discount: parseFloat(discountPercent) || 0,
+        tax: parseFloat(taxRate) || 0,
+      });
       setSuccessMessage(true);
       setTimeout(() => {
         router.push("/inventory");
       }, 1400);
-    }, 800);
+    } catch (err) {
+      console.error("Failed to add product:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

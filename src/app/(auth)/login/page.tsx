@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 
+import { AuthService } from "@/services";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("samcurrent@gmail.com");
   const [password, setPassword] = useState("********");
@@ -12,12 +14,15 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await AuthService.login({ email, pin: password });
+      window.location.href = "/dashboard";
+    } catch {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
