@@ -11,6 +11,8 @@ export default function Header() {
   const pathname = usePathname();
 
   const getPageTitle = () => {
+    if (pathname.startsWith("/settings")) return "Setting_Company Profile";
+    if (pathname === "/roles-permissions/add" || pathname === "/roles-permissions/new") return "Users & Permissions_Add User";
     if (pathname.startsWith("/roles-permissions")) return "Users & Permissions_User List";
     if (pathname.startsWith("/hrm/payroll")) return "HRM_Payroll";
     if (pathname === "/hrm/add" || pathname === "/hrm/new") return "HRM_Add Employees";
@@ -29,7 +31,6 @@ export default function Header() {
     if (pathname.startsWith("/sales-pos/sales")) return "Sales & POS_Sales";
     if (pathname.startsWith("/sales-pos")) return "Sales & POS_POS";
     if (pathname.startsWith("/ceo-overview")) return "CEO Overview";
-    if (pathname.startsWith("/settings")) return "Settings";
     return "Dashboard_Overview";
   };
 

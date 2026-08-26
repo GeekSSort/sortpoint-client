@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CloudUpload, CheckCircle2 } from "lucide-react";
 import { initialCompanyProfile, SettingsService } from "@/lib/services/settings.service";
 
-export default function SettingsPage() {
+export default function EditProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState(initialCompanyProfile);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -21,7 +21,9 @@ export default function SettingsPage() {
     try {
       await SettingsService.updateCompanyProfile(profile);
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2500);
+      setTimeout(() => {
+        router.push("/settings");
+      }, 1200);
     } catch (err) {
       console.error("Failed to update profile:", err);
     } finally {
@@ -34,37 +36,16 @@ export default function SettingsPage() {
       {/* Top Page Header Section */}
       <div>
         <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-          Company Profile
+          Edit Profile
         </h2>
         <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
           Manage your company information, branding, contact details, and business settings.
         </p>
       </div>
 
-      {/* Main Settings Container */}
-      <form onSubmit={handleSave} className="flex flex-col lg:flex-row items-start gap-6">
-        {/* Left Branding / Logo Card */}
-        <div className="w-full lg:w-[280px] bg-white rounded-2xl border border-gray-200/90 p-8 flex flex-col items-center justify-center gap-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] shrink-0">
-          <div className="w-[180px] h-[90px] relative flex items-center justify-center">
-            <Image
-              src="/image1.png"
-              alt="ABCD Retailer Logo"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-
-          <Link
-            href="/settings/edit"
-            className="px-5 py-1.5 border border-amber-400 text-amber-500 hover:bg-amber-50 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-          >
-            Edit Profile
-          </Link>
-        </div>
-
-        {/* Right Form Card */}
-        <div className="flex-1 w-full bg-white rounded-2xl border border-gray-200/90 p-6 sm:p-8 flex flex-col gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      {/* Centered Form Container */}
+      <div className="mx-auto w-full max-w-[560px]">
+        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-200/90 p-6 sm:p-8 flex flex-col gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           {/* 1. Company Name */}
           <div>
             <label className="text-xs font-bold text-gray-800 block mb-1.5">
@@ -169,11 +150,20 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Success Message */}
+          {/* 9. Upload Image Box */}
+          <div>
+            <label className="w-full border border-gray-200 hover:border-gray-300 rounded-xl py-6 flex items-center justify-center gap-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50/70 transition-colors cursor-pointer">
+              <input type="file" accept="image/*" className="hidden" />
+              <CloudUpload className="w-5 h-5 text-gray-700" />
+              <span>Upload Image</span>
+            </label>
+          </div>
+
+          {/* Success Notification */}
           {savedSuccess && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-700 flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Settings saved successfully!</span>
+              <span>Profile updated successfully! Redirecting...</span>
             </div>
           )}
 
@@ -182,13 +172,14 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="px-6 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs transition-all cursor-pointer disabled:opacity-60"
+              className="w-full py-3.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-xs text-center cursor-pointer disabled:opacity-60"
             >
-              {isSaving ? "Saving Changes..." : "Save Changes"}
+              {isSaving ? "Updating Profile..." : "Update Profile"}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
+

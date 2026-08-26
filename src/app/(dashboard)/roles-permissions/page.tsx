@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Plus,
   Search,
@@ -69,14 +70,13 @@ export default function RolesPermissionsPage() {
 
         {/* Add New Button */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
+          <Link
+            href="/roles-permissions/add"
             className="flex items-center gap-2 px-5 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Add New</span>
-          </button>
+          </Link>
         </div>
       </div>
 

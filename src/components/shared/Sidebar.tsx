@@ -274,8 +274,10 @@ export default function Sidebar() {
             const isHrmActive = isHrm && pathname.startsWith("/hrm");
             const isRoles = item.name === "Roles & Permissions";
             const isRolesActive = isRoles && pathname.startsWith("/roles-permissions");
+            const isSettings = item.name === "Settings";
+            const isSettingsActive = isSettings && pathname.startsWith("/settings");
 
-            const isGoldActive = isHrmActive || isRolesActive;
+            const isGoldActive = isHrmActive || isRolesActive || isSettingsActive;
 
             return (
               <Link
