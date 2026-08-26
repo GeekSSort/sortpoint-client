@@ -13,19 +13,19 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import { InventoryProduct } from "@/types/inventory";
-import { InventoryService, initialInventoryProducts } from "@/lib/services/inventory.service";
+import { StockItem } from "@/types/stock";
+import { StockService, initialStockData } from "@/lib/services/stock.service";
 
-export default function InventoryProductPage() {
-  const [products, setProducts] = useState<InventoryProduct[]>(initialInventoryProducts);
+export default function StockPage() {
+  const [stockItems, setStockItems] = useState<StockItem[]>(initialStockData);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    InventoryService.getProducts({ search: searchQuery }).then((res) => {
-      setProducts(res.data);
+    StockService.getStock({ search: searchQuery }).then((res) => {
+      setStockItems(res.data);
     });
   }, [searchQuery]);
 
@@ -36,10 +36,10 @@ export default function InventoryProductPage() {
         {/* Title & Subtitle */}
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            Product
+            Stock
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Manage, organize, and monitor all products across your inventory.
+            Track current inventory levels across all branches and warehouses.
           </p>
         </div>
 
@@ -56,7 +56,7 @@ export default function InventoryProductPage() {
 
           {/* Add New Button */}
           <Link
-            href="/inventory/add"
+            href="/inventory/stock/add"
             className="flex items-center gap-2 px-5 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -65,12 +65,12 @@ export default function InventoryProductPage() {
         </div>
       </div>
 
-      {/* Product List Container Card */}
+      {/* Stock Table Container Card */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Card Header: Product List Title + Search & Filter */}
+        {/* Card Header: Stock Table Title + Search & Filter */}
         <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
           <h3 className="text-base font-bold text-gray-900">
-            Product List
+            Stock Table
           </h3>
 
           <div className="flex items-center gap-2.5">
@@ -89,7 +89,7 @@ export default function InventoryProductPage() {
             {/* Filter Funnel Button */}
             <button
               type="button"
-              title="Filter products"
+              title="Filter stock"
               className="p-2 border border-gray-200 hover:border-gray-300 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
             >
               <Filter className="w-4 h-4" />
@@ -102,30 +102,24 @@ export default function InventoryProductPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
-                <th className="py-3.5 px-4 font-semibold w-10">#</th>
-                <th className="py-3.5 px-4 font-semibold">Product Name</th>
-                <th className="py-3.5 px-4 font-semibold">Category</th>
-                <th className="py-3.5 px-4 font-semibold">Brand</th>
-                <th className="py-3.5 px-4 font-semibold">Price</th>
-                <th className="py-3.5 px-4 font-semibold text-center">Stock</th>
-                <th className="py-3.5 px-4 font-semibold">SKU</th>
-                <th className="py-3.5 px-4 font-semibold text-center">Status</th>
-                <th className="py-3.5 px-4 font-semibold text-center">Action</th>
+                <th className="py-3.5 px-5 font-semibold">Product Name</th>
+                <th className="py-3.5 px-5 font-semibold">SKU</th>
+                <th className="py-3.5 px-5 font-semibold">Warehouse</th>
+                <th className="py-3.5 px-5 font-semibold text-center">Available</th>
+                <th className="py-3.5 px-5 font-semibold text-center">Reserved</th>
+                <th className="py-3.5 px-5 font-semibold text-center">Low Stock</th>
+                <th className="py-3.5 px-5 font-semibold text-center">Status</th>
+                <th className="py-3.5 px-5 font-semibold text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-xs font-medium text-gray-700">
-              {products.map((item, idx) => (
+              {stockItems.map((item, idx) => (
                 <tr
                   key={`${item.id}-${idx}`}
                   className="hover:bg-gray-50/80 transition-colors"
                 >
-                  {/* Index */}
-                  <td className="py-4 px-4 text-gray-500 font-medium">
-                    {item.index}
-                  </td>
-
                   {/* Product Name + Thumbnail */}
-                  <td className="py-4 px-4">
+                  <td className="py-4 px-5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-lg bg-gray-100 relative shrink-0 overflow-hidden border border-gray-200/60">
                         <Image
@@ -135,39 +129,39 @@ export default function InventoryProductPage() {
                           className="object-contain p-0.5"
                         />
                       </div>
-                      <span className="font-semibold text-gray-900 truncate max-w-[150px]">
+                      <span className="font-semibold text-gray-900 truncate max-w-[160px]">
                         {item.name}
                       </span>
                     </div>
                   </td>
 
-                  {/* Category */}
-                  <td className="py-4 px-4 text-gray-600">
-                    {item.category}
-                  </td>
-
-                  {/* Brand */}
-                  <td className="py-4 px-4 text-gray-700 font-medium">
-                    {item.brand}
-                  </td>
-
-                  {/* Price */}
-                  <td className="py-4 px-4 font-bold text-gray-900">
-                    {item.priceFormatted}
-                  </td>
-
-                  {/* Stock Count */}
-                  <td className="py-4 px-4 text-center font-bold text-gray-900">
-                    {item.stock}
-                  </td>
-
                   {/* SKU */}
-                  <td className="py-4 px-4 text-gray-500 font-mono text-[11px]">
+                  <td className="py-4 px-5 text-gray-500 font-mono text-[11px]">
                     {item.sku}
                   </td>
 
+                  {/* Warehouse */}
+                  <td className="py-4 px-5 text-gray-600">
+                    {item.warehouse}
+                  </td>
+
+                  {/* Available */}
+                  <td className="py-4 px-5 text-center font-bold text-gray-900">
+                    {item.available}
+                  </td>
+
+                  {/* Reserved */}
+                  <td className="py-4 px-5 text-center font-bold text-gray-900">
+                    {item.reserved}
+                  </td>
+
+                  {/* Low Stock */}
+                  <td className="py-4 px-5 text-center font-bold text-gray-900">
+                    {item.lowStock}
+                  </td>
+
                   {/* Status Badge */}
-                  <td className="py-4 px-4 text-center">
+                  <td className="py-4 px-5 text-center">
                     {item.status === "In Stock" && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -189,7 +183,7 @@ export default function InventoryProductPage() {
                   </td>
 
                   {/* Action 3 Dots */}
-                  <td className="py-4 px-4 text-center">
+                  <td className="py-4 px-5 text-center">
                     <button
                       type="button"
                       title="More actions"
@@ -208,7 +202,7 @@ export default function InventoryProductPage() {
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 text-xs text-gray-500">
           {/* Entries summary */}
           <div className="flex items-center gap-4">
-            <span>Showing 1 to {Math.min(pageSize, products.length)} of 50 entries</span>
+            <span>Showing 1 to {Math.min(pageSize, stockItems.length)} of 50 entries</span>
 
             {/* Page Size Selector */}
             <div className="relative inline-flex items-center">
@@ -281,3 +275,4 @@ export default function InventoryProductPage() {
     </div>
   );
 }
+

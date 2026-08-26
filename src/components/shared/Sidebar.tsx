@@ -13,6 +13,7 @@ import {
   UserCheck,
   ShieldCheck,
   Settings,
+  HelpCircle,
   ChevronRight,
   ChevronDown,
   LogOut,
@@ -36,17 +37,26 @@ const navItems: NavItem[] = [
   { name: "HRM", href: "/hrm", icon: UserCheck },
   { name: "Roles & Permissions", href: "/roles-permissions", icon: ShieldCheck },
   { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Help & Support", href: "/help", icon: HelpCircle },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  
   const isSalesPosRoute = pathname.startsWith("/sales-pos");
+  const isInventoryRoute = pathname.startsWith("/inventory");
+
   const [salesPosOpen, setSalesPosOpen] = useState(isSalesPosRoute);
+  const [inventoryOpen, setInventoryOpen] = useState(isInventoryRoute);
 
   const isReturnActive = pathname.startsWith("/sales-pos/return");
   const isSalesActive = pathname.startsWith("/sales-pos/sales");
   const isPosActive = (pathname === "/sales-pos" || pathname === "/sales-pos/pos") && !isReturnActive && !isSalesActive;
+
+  const isInventoryStockActive = pathname.startsWith("/inventory/stock");
+  const isInventoryTransfersActive = pathname.startsWith("/inventory/transfers");
+  const isInventoryProductActive = (pathname === "/inventory" || pathname === "/inventory/add" || pathname === "/inventory/products" || pathname.startsWith("/inventory/products")) && !isInventoryStockActive && !isInventoryTransfersActive;
 
   return (
     <aside
@@ -84,7 +94,12 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const isDashboard = item.href === "/dashboard" && (pathname === "/" || pathname === "/dashboard");
             const isSalesPos = item.name === "Sales & POS";
-            const isActive = isSalesPos ? isSalesPosRoute : (pathname === item.href || isDashboard);
+            const isInventory = item.name === "Inventory";
+            const isActive = isSalesPos
+              ? isSalesPosRoute
+              : isInventory
+              ? isInventoryRoute
+              : (pathname === item.href || isDashboard || (item.href === "/customers" && pathname.startsWith("/customers")));
             const Icon = item.icon;
 
             // Render expanded Golden Card for Sales & POS
@@ -94,7 +109,6 @@ export default function Sidebar() {
                   key={item.name}
                   className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
                 >
-                  {/* Sales & POS Header inside the Gold Card */}
                   <button
                     type="button"
                     onClick={() => setSalesPosOpen(!salesPosOpen)}
@@ -107,9 +121,7 @@ export default function Sidebar() {
                     <ChevronDown className="w-4 h-4 text-white" />
                   </button>
 
-                  {/* Submenu Items */}
                   <div className="flex flex-col gap-1.5 pt-1">
-                    {/* POS Sub-item */}
                     <Link
                       href="/sales-pos"
                       className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
@@ -121,7 +133,6 @@ export default function Sidebar() {
                       POS
                     </Link>
 
-                    {/* Sales Sub-item */}
                     <Link
                       href="/sales-pos/sales"
                       className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
@@ -133,7 +144,6 @@ export default function Sidebar() {
                       Sales
                     </Link>
 
-                    {/* Return Sub-item */}
                     <Link
                       href="/sales-pos/return"
                       className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
@@ -149,14 +159,70 @@ export default function Sidebar() {
               );
             }
 
+            // Render expanded Golden Card for Inventory
+            if (isInventory && (inventoryOpen || isInventoryRoute)) {
+              return (
+                <div
+                  key={item.name}
+                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setInventoryOpen(!inventoryOpen)}
+                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Boxes className="w-4 h-4 text-white" />
+                      <span>Inventory</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-white" />
+                  </button>
+
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    <Link
+                      href="/inventory"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isInventoryProductActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Product
+                    </Link>
+
+                    <Link
+                      href="/inventory/stock"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isInventoryStockActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Stock
+                    </Link>
+
+                    <Link
+                      href="/inventory/transfers"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isInventoryTransfersActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Transfers
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={() => {
-                  if (isSalesPos) {
-                    setSalesPosOpen(true);
-                  }
+                  if (isSalesPos) setSalesPosOpen(true);
+                  if (isInventory) setInventoryOpen(true);
                 }}
                 className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
