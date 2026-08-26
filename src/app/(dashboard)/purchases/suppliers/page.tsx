@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Calendar,
   Plus,
   Search,
   Filter,
@@ -13,45 +12,44 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  CreditCard,
 } from "lucide-react";
-import { EmployeeRecord } from "@/types/hrm";
-import { HrmService, initialEmployeesData } from "@/lib/services/hrm.service";
+import { SupplierRecord } from "@/types/suppliers";
+import { SuppliersService, initialSuppliersData } from "@/lib/services/suppliers.service";
 
-export default function HrmPage() {
-  const [employees, setEmployees] = useState<EmployeeRecord[]>(initialEmployeesData);
+export default function SuppliersPage() {
+  const [suppliers, setSuppliers] = useState<SupplierRecord[]>(initialSuppliersData);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState("24 August 2026");
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // New employee state
+  // New supplier state
   const [name, setName] = useState("");
-  const [department, setDepartment] = useState<"Management" | "HR" | "Sales" | "Accounts" | "IT">("Management");
-  const [designation, setDesignation] = useState("");
+  const [phone, setPhone] = useState("");
+  const [mail, setMail] = useState("");
 
   useEffect(() => {
-    HrmService.getEmployees({ search: searchQuery }).then((res) => {
-      setEmployees(res.data);
+    SuppliersService.getSuppliers({ search: searchQuery }).then((res) => {
+      setSuppliers(res.data);
     });
   }, [searchQuery]);
 
-  const handleCreateEmployee = async (e: React.FormEvent) => {
+  const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !designation) return;
+    if (!name || !phone) return;
 
-    const created = await HrmService.createEmployee({
+    const created = await SuppliersService.createSupplier({
       name,
-      department,
-      designation,
-      status: "Present",
+      phone,
+      mail: mail || "info@abctraders.com",
+      status: "Active",
     });
 
-    setEmployees((prev) => [created, ...prev]);
+    setSuppliers((prev) => [created, ...prev]);
     setIsAddModalOpen(false);
     setName("");
-    setDesignation("");
+    setPhone("");
+    setMail("");
   };
 
   return (
@@ -61,37 +59,17 @@ export default function HrmPage() {
         {/* Title & Subtitle */}
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            All Employees
+            All Suppliers
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Manage employee records, attendance, check-in/out, and employee status from one place.
+            Manage all suppliers, purchase history, outstanding balances, and supplier information from one place.
           </p>
         </div>
 
-        {/* Action Controls: Mini Payroll Button, Date Filter & Add New */}
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap sm:flex-nowrap">
-          {/* Mini Payroll Button (Requested) */}
+        {/* Add New Button */}
+        <div className="flex items-center gap-3">
           <Link
-            href="/hrm/payroll"
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100/80 text-amber-700 border border-amber-200/80 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs"
-            title="Manage Payroll"
-          >
-            <CreditCard className="w-4 h-4 text-amber-600" />
-            <span>Payroll</span>
-          </Link>
-
-          {/* Date Selector Pill */}
-          <button
-            type="button"
-            className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <span>{selectedDate}</span>
-            <Calendar className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* Add New Button */}
-          <Link
-            href="/hrm/add"
+            href="/purchases/suppliers/add"
             className="flex items-center gap-2 px-5 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -100,12 +78,12 @@ export default function HrmPage() {
         </div>
       </div>
 
-      {/* Employee List Container Card */}
+      {/* Supplier List Container Card */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Card Header: Product List Title + Search & Filter */}
+        {/* Card Header: Purchase List Title + Search & Filter */}
         <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
           <h3 className="text-base font-bold text-gray-900">
-            Product List
+            Purchase List
           </h3>
 
           <div className="flex items-center gap-2.5">
@@ -116,7 +94,7 @@ export default function HrmPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, ID, email, phone..."
+                placeholder="Search by Purchase ID or Supplier.."
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-amber-400 transition-colors"
               />
             </div>
@@ -124,7 +102,7 @@ export default function HrmPage() {
             {/* Filter Funnel Button */}
             <button
               type="button"
-              title="Filter employees"
+              title="Filter suppliers"
               className="p-2 border border-gray-200 hover:border-gray-300 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
             >
               <Filter className="w-4 h-4" />
@@ -138,17 +116,18 @@ export default function HrmPage() {
             <thead>
               <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
                 <th className="py-3.5 px-4 font-semibold w-10">#</th>
-                <th className="py-3.5 px-4 font-semibold">Employee</th>
-                <th className="py-3.5 px-4 font-semibold">Department</th>
-                <th className="py-3.5 px-4 font-semibold">Designation</th>
-                <th className="py-3.5 px-4 font-semibold">Check In</th>
-                <th className="py-3.5 px-4 font-semibold">Check Out</th>
+                <th className="py-3.5 px-4 font-semibold">Supplier Name</th>
+                <th className="py-3.5 px-4 font-semibold">Phone</th>
+                <th className="py-3.5 px-4 font-semibold">Mail</th>
+                <th className="py-3.5 px-4 font-semibold">Total Purchases</th>
+                <th className="py-3.5 px-4 font-semibold">Balance</th>
+                <th className="py-3.5 px-4 font-semibold">Last Purchase</th>
                 <th className="py-3.5 px-4 font-semibold text-center">Status</th>
                 <th className="py-3.5 px-4 font-semibold text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-xs font-medium text-gray-700">
-              {employees.map((item, idx) => (
+              {suppliers.map((item, idx) => (
                 <tr
                   key={`${item.id}-${idx}`}
                   className="hover:bg-gray-50/80 transition-colors"
@@ -158,7 +137,7 @@ export default function HrmPage() {
                     {item.index}
                   </td>
 
-                  {/* Employee Avatar + Name */}
+                  {/* Supplier Name + Avatar */}
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-6 h-6 rounded-md bg-amber-100 relative shrink-0 overflow-hidden border border-gray-200">
@@ -175,44 +154,42 @@ export default function HrmPage() {
                     </div>
                   </td>
 
-                  {/* Department */}
+                  {/* Phone */}
                   <td className="py-4 px-4 text-gray-600">
-                    {item.department}
+                    {item.phone}
                   </td>
 
-                  {/* Designation */}
-                  <td className="py-4 px-4 text-gray-700 font-medium">
-                    {item.designation}
+                  {/* Mail */}
+                  <td className="py-4 px-4 text-gray-600">
+                    {item.mail}
                   </td>
 
-                  {/* Check In */}
-                  <td className="py-4 px-4 text-gray-500 font-mono text-[11px]">
-                    {item.checkIn}
+                  {/* Total Purchases */}
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {item.totalPurchasesFormatted}
                   </td>
 
-                  {/* Check Out */}
-                  <td className="py-4 px-4 text-gray-500 font-mono text-[11px]">
-                    {item.checkOut}
+                  {/* Balance */}
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {item.balanceFormatted}
+                  </td>
+
+                  {/* Last Purchase */}
+                  <td className="py-4 px-4 text-gray-500">
+                    {item.lastPurchase}
                   </td>
 
                   {/* Status Badge */}
                   <td className="py-4 px-4 text-center">
-                    {item.status === "Present" && (
+                    {item.status === "Active" ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Present
+                        Active
                       </span>
-                    )}
-                    {item.status === "On Leave" && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        On Leave
-                      </span>
-                    )}
-                    {item.status === "Absent" && (
+                    ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                        Absent
+                        Inactive
                       </span>
                     )}
                   </td>
@@ -237,7 +214,7 @@ export default function HrmPage() {
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 text-xs text-gray-500">
           {/* Entries summary */}
           <div className="flex items-center gap-4">
-            <span>Showing 1 to {Math.min(pageSize, employees.length)} of 50 entries</span>
+            <span>Showing 1 to {Math.min(pageSize, suppliers.length)} of 50 entries</span>
 
             {/* Page Size Selector */}
             <div className="relative inline-flex items-center">
@@ -308,12 +285,12 @@ export default function HrmPage() {
         </div>
       </div>
 
-      {/* Add New Employee Modal */}
+      {/* Add New Supplier Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-              <h4 className="text-base font-bold text-gray-900">Add New Employee</h4>
+              <h4 className="text-base font-bold text-gray-900">Add New Supplier</h4>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -323,15 +300,15 @@ export default function HrmPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateEmployee} className="flex flex-col gap-3.5">
+            <form onSubmit={handleCreateSupplier} className="flex flex-col gap-3.5">
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Employee Name
+                  Supplier Name
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Ahmed Rahman"
+                  placeholder="e.g. ABC Traders"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
@@ -340,31 +317,27 @@ export default function HrmPage() {
 
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Department
-                </label>
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-amber-400"
-                >
-                  <option value="Management">Management</option>
-                  <option value="HR">HR</option>
-                  <option value="Sales">Sales</option>
-                  <option value="Accounts">Accounts</option>
-                  <option value="IT">IT</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Designation
+                  Phone Number
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. General Manager"
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
+                  placeholder="e.g. +880 1912 345 680"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-700 block mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. info@abctraders.com"
+                  value={mail}
+                  onChange={(e) => setMail(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
                 />
               </div>
@@ -381,7 +354,7 @@ export default function HrmPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#F4B41A] hover:bg-[#E5A612] shadow-xs transition-colors"
                 >
-                  Save Employee
+                  Save Supplier
                 </button>
               </div>
             </form>
@@ -391,3 +364,4 @@ export default function HrmPage() {
     </div>
   );
 }
+

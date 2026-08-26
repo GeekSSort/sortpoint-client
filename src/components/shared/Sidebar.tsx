@@ -46,9 +46,11 @@ export default function Sidebar() {
   
   const isSalesPosRoute = pathname.startsWith("/sales-pos");
   const isInventoryRoute = pathname.startsWith("/inventory");
+  const isPurchasesRoute = pathname.startsWith("/purchases");
 
   const [salesPosOpen, setSalesPosOpen] = useState(isSalesPosRoute);
   const [inventoryOpen, setInventoryOpen] = useState(isInventoryRoute);
+  const [purchasesOpen, setPurchasesOpen] = useState(isPurchasesRoute);
 
   const isReturnActive = pathname.startsWith("/sales-pos/return");
   const isSalesActive = pathname.startsWith("/sales-pos/sales");
@@ -57,6 +59,9 @@ export default function Sidebar() {
   const isInventoryStockActive = pathname.startsWith("/inventory/stock");
   const isInventoryTransfersActive = pathname.startsWith("/inventory/transfers");
   const isInventoryProductActive = (pathname === "/inventory" || pathname === "/inventory/add" || pathname === "/inventory/products" || pathname.startsWith("/inventory/products")) && !isInventoryStockActive && !isInventoryTransfersActive;
+
+  const isSuppliersActive = pathname.startsWith("/purchases/suppliers");
+  const isPurchaseHistoryActive = (pathname === "/purchases" || pathname.startsWith("/purchases/history") || pathname.startsWith("/purchases")) && !isSuppliersActive;
 
   return (
     <aside
@@ -95,10 +100,13 @@ export default function Sidebar() {
             const isDashboard = item.href === "/dashboard" && (pathname === "/" || pathname === "/dashboard");
             const isSalesPos = item.name === "Sales & POS";
             const isInventory = item.name === "Inventory";
+            const isPurchases = item.name === "Purchases";
             const isActive = isSalesPos
               ? isSalesPosRoute
               : isInventory
               ? isInventoryRoute
+              : isPurchases
+              ? isPurchasesRoute
               : (pathname === item.href || isDashboard || (item.href === "/customers" && pathname.startsWith("/customers")));
             const Icon = item.icon;
 
@@ -216,6 +224,59 @@ export default function Sidebar() {
               );
             }
 
+            // Render expanded Golden Card for Purchases
+            if (isPurchases && (purchasesOpen || isPurchasesRoute)) {
+              return (
+                <div
+                  key={item.name}
+                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPurchasesOpen(!purchasesOpen)}
+                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <ShoppingCart className="w-4 h-4 text-white" />
+                      <span>Purchases</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-white" />
+                  </button>
+
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    <Link
+                      href="/purchases"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isPurchaseHistoryActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Purchase History
+                    </Link>
+
+                    <Link
+                      href="/purchases/suppliers"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isSuppliersActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Suppliers
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
+            const isHrm = item.name === "HRM";
+            const isHrmActive = isHrm && pathname.startsWith("/hrm");
+            const isRoles = item.name === "Roles & Permissions";
+            const isRolesActive = isRoles && pathname.startsWith("/roles-permissions");
+
+            const isGoldActive = isHrmActive || isRolesActive;
+
             return (
               <Link
                 key={item.name}
@@ -223,9 +284,12 @@ export default function Sidebar() {
                 onClick={() => {
                   if (isSalesPos) setSalesPosOpen(true);
                   if (isInventory) setInventoryOpen(true);
+                  if (isPurchases) setPurchasesOpen(true);
                 }}
                 className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
+                  isGoldActive
+                    ? "bg-[#F4B41A] text-white shadow-sm font-bold"
+                    : isActive
                     ? "bg-white text-[#F4B41A] shadow-xs"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
@@ -233,7 +297,11 @@ export default function Sidebar() {
                 <div className="flex items-center gap-3">
                   <Icon
                     className={`w-[18px] h-[18px] transition-colors ${
-                      isActive ? "text-[#F4B41A]" : "text-gray-500 group-hover:text-gray-700"
+                      isGoldActive
+                        ? "text-white"
+                        : isActive
+                        ? "text-[#F4B41A]"
+                        : "text-gray-500 group-hover:text-gray-700"
                     }`}
                   />
                   <span>{item.name}</span>

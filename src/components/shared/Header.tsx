@@ -11,6 +11,13 @@ export default function Header() {
   const pathname = usePathname();
 
   const getPageTitle = () => {
+    if (pathname.startsWith("/roles-permissions")) return "Users & Permissions_User List";
+    if (pathname.startsWith("/hrm/payroll")) return "HRM_Payroll";
+    if (pathname === "/hrm/add" || pathname === "/hrm/new") return "HRM_Add Employees";
+    if (pathname.startsWith("/hrm")) return "HRM_All Employees";
+    if (pathname === "/purchases/suppliers/add" || pathname === "/purchases/suppliers/new") return "Purchases_Add Supplier";
+    if (pathname.startsWith("/purchases/suppliers")) return "Purchases_Suppliers";
+    if (pathname.startsWith("/purchases")) return "Purchases_Purchases Order";
     if (pathname === "/inventory/stock/add" || pathname === "/inventory/stock/new") return "Inventory_Add Stock";
     if (pathname.startsWith("/inventory/stock")) return "Inventory_Stock";
     if (pathname.startsWith("/inventory/transfers")) return "Inventory_Transfers";
@@ -22,9 +29,6 @@ export default function Header() {
     if (pathname.startsWith("/sales-pos/sales")) return "Sales & POS_Sales";
     if (pathname.startsWith("/sales-pos")) return "Sales & POS_POS";
     if (pathname.startsWith("/ceo-overview")) return "CEO Overview";
-    if (pathname.startsWith("/purchases")) return "Purchases";
-    if (pathname.startsWith("/hrm")) return "HRM";
-    if (pathname.startsWith("/roles-permissions")) return "Roles & Permissions";
     if (pathname.startsWith("/settings")) return "Settings";
     return "Dashboard_Overview";
   };
