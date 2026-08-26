@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -14,8 +14,11 @@ import {
   ShieldCheck,
   Settings,
   ChevronRight,
+  ChevronDown,
   LogOut,
+  PanelLeftClose,
 } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 
 interface NavItem {
   name: string;
@@ -37,17 +40,27 @@ const navItems: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const isSalesPosRoute = pathname.startsWith("/sales-pos");
+  const [salesPosOpen, setSalesPosOpen] = useState(isSalesPosRoute);
+
+  const isPosActive = pathname === "/sales-pos" || pathname === "/sales-pos/pos";
+  const isSalesActive = pathname === "/sales-pos/sales";
+  const isReturnActive = pathname === "/sales-pos/return";
 
   return (
     <aside
-      className="w-[240px] min-h-screen bg-[#F8F9FA] border-r border-gray-200 pt-[20px] pb-[20px] px-[16px] flex flex-col justify-between select-none shrink-0"
-      style={{ opacity: 1 }}
+      className={`bg-[#F8F9FA] border-r border-gray-200 flex flex-col justify-between select-none shrink-0 transition-all duration-300 ease-in-out overflow-hidden z-40 ${
+        isCollapsed
+          ? "w-0 p-0 border-r-0 opacity-0 pointer-events-none -translate-x-full"
+          : "w-[240px] min-h-screen pt-[20px] pb-[20px] px-[16px] gap-[10px] opacity-100 translate-x-0"
+      }`}
     >
       {/* Top Section */}
-      <div className="flex flex-col gap-[10px]">
-        {/* Brand / Logo */}
-        <div className="mb-3">
-          <Link href="/dashboard" className="block relative w-full h-[52px] rounded-xl overflow-hidden bg-[#16161a]">
+      <div className="flex flex-col gap-[10px] w-[208px]">
+        {/* Brand / Logo + Minimize button */}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <Link href="/dashboard" className="block relative flex-1 h-[52px] rounded-xl overflow-hidden bg-[#16161a]">
             <Image
               src="/left_sidebar_logo.png"
               alt="SORTPOINT SMART POS · SIMPLY BUSINESS"
@@ -56,18 +69,95 @@ export default function Sidebar() {
               priority
             />
           </Link>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            title="Minimize sidebar"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors cursor-pointer"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-[6px]">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href === "/dashboard" && pathname === "/");
+            const isDashboard = item.href === "/dashboard" && (pathname === "/" || pathname === "/dashboard");
+            const isSalesPos = item.name === "Sales & POS";
+            const isActive = isSalesPos ? isSalesPosRoute : (pathname === item.href || isDashboard);
             const Icon = item.icon;
+
+            // Render expanded Golden Card for Sales & POS
+            if (isSalesPos && (salesPosOpen || isSalesPosRoute)) {
+              return (
+                <div
+                  key={item.name}
+                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
+                >
+                  {/* Sales & POS Header inside the Gold Card */}
+                  <button
+                    type="button"
+                    onClick={() => setSalesPosOpen(!salesPosOpen)}
+                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Receipt className="w-4 h-4 text-white" />
+                      <span>Sales & POS</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-white" />
+                  </button>
+
+                  {/* Submenu Items */}
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    {/* POS Sub-item */}
+                    <Link
+                      href="/sales-pos"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isPosActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      POS
+                    </Link>
+
+                    {/* Sales Sub-item */}
+                    <Link
+                      href="/sales-pos/sales"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isSalesActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Sales
+                    </Link>
+
+                    {/* Return Sub-item */}
+                    <Link
+                      href="/sales-pos/return"
+                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
+                        isReturnActive
+                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
+                          : "border border-white/50 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      Return
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => {
+                  if (isSalesPos) {
+                    setSalesPosOpen(true);
+                  }
+                }}
                 className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
                     ? "bg-white text-[#F4B41A] shadow-xs"
@@ -96,12 +186,11 @@ export default function Sidebar() {
       </div>
 
       {/* Bottom Section: Log Out & User Profile */}
-      <div className="flex flex-col gap-4 mt-auto pt-4">
+      <div className="flex flex-col gap-4 mt-auto pt-4 w-[208px]">
         {/* Log Out Button */}
         <button
           type="button"
           onClick={() => {
-            // Can be connected to auth sign-out action or redirect to /login
             window.location.href = "/login";
           }}
           className="w-full py-2 px-3.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 flex items-center justify-between transition-all cursor-pointer shadow-2xs"
@@ -118,10 +207,6 @@ export default function Sidebar() {
               alt="Zayn Malik"
               fill
               className="object-cover"
-              onError={(e) => {
-                // Fallback handling
-                e.currentTarget.style.display = "none";
-              }}
             />
           </div>
           <div className="flex flex-col min-w-0">

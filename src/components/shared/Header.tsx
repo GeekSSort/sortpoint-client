@@ -2,15 +2,46 @@
 
 import React from "react";
 import Image from "next/image";
-import { Bell } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Bell, PanelLeft, PanelLeftClose } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 
 export default function Header() {
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const pathname = usePathname();
+
+  const getPageTitle = () => {
+    if (pathname.startsWith("/sales-pos")) return "Sales & POS_POS";
+    if (pathname.startsWith("/ceo-overview")) return "CEO Overview";
+    if (pathname.startsWith("/customers")) return "Customers";
+    if (pathname.startsWith("/inventory")) return "Inventory";
+    if (pathname.startsWith("/purchases")) return "Purchases";
+    if (pathname.startsWith("/hrm")) return "HRM";
+    if (pathname.startsWith("/roles-permissions")) return "Roles & Permissions";
+    if (pathname.startsWith("/settings")) return "Settings";
+    return "Dashboard_Overview";
+  };
+
   return (
     <header className="h-[60px] bg-transparent flex items-center justify-between select-none">
-      {/* Title */}
-      <div>
-        <h1 className="text-base font-bold text-gray-800 tracking-tight">
-          Dashboard_Overview
+      {/* Title + Sidebar Minimize/Expand Toggle */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
+          className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-200/60 transition-colors cursor-pointer"
+          title={isCollapsed ? "Expand sidebar" : "Minimize sidebar"}
+        >
+          {isCollapsed ? (
+            <PanelLeft className="w-5 h-5 text-[#F4B41A]" />
+          ) : (
+            <PanelLeftClose className="w-5 h-5 text-gray-500" />
+          )}
+        </button>
+
+        <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
+          {getPageTitle()}
         </h1>
       </div>
 

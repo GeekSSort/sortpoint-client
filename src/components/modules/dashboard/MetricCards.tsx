@@ -12,6 +12,7 @@ import {
 
 interface MetricCardsProps {
   metrics: MetricCardData[];
+  onCardClick?: (id: string) => void;
 }
 
 const iconMap = {
@@ -21,7 +22,7 @@ const iconMap = {
   customers: Users,
 };
 
-export default function MetricCards({ metrics }: MetricCardsProps) {
+export default function MetricCards({ metrics, onCardClick }: MetricCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
       {metrics.map((item) => {
@@ -30,11 +31,12 @@ export default function MetricCards({ metrics }: MetricCardsProps) {
         return (
           <div
             key={item.id}
-            className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all"
+            onClick={() => onCardClick?.(item.id)}
+            className="bg-white rounded-2xl p-5 border border-gray-100/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-amber-200/80 transition-all cursor-pointer group select-none"
           >
             <div className="flex items-start gap-3.5">
               {/* Circular Icon */}
-              <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-100/60 flex items-center justify-center text-[#F4B41A] shrink-0">
+              <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-100/60 flex items-center justify-center text-[#F4B41A] shrink-0 group-hover:scale-105 transition-transform">
                 <IconComponent className="w-5 h-5" />
               </div>
 
@@ -62,4 +64,3 @@ export default function MetricCards({ metrics }: MetricCardsProps) {
     </div>
   );
 }
-

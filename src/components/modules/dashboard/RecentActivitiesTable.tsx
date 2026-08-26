@@ -18,40 +18,41 @@ export default function RecentActivitiesTable({ activities }: RecentActivitiesTa
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const getStatusBadge = (status: ActivityStatus) => {
     switch (status) {
       case "Delivered":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Delivered
           </span>
         );
       case "Pending":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200/60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             Pending
           </span>
         );
       case "Process":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/80">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
             Process
           </span>
         );
       case "Shipping":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-600 border border-orange-200/60">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-600 border border-orange-200/60">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
             Shipping
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-600 border border-gray-200">
             <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
             {status}
           </span>
@@ -60,12 +61,20 @@ export default function RecentActivitiesTable({ activities }: RecentActivitiesTa
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100/80 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-      {/* Title Bar */}
-      <div className="py-4 px-6 border-b border-gray-100 text-center">
-        <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+    <div className="bg-white rounded-3xl border border-gray-100/80 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
+      {/* Title Bar with View All Button */}
+      <div className="py-4 px-6 border-b border-gray-100 flex items-center justify-between">
+        <h3 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">
           Recent Activities
         </h3>
+
+        <button
+          type="button"
+          onClick={() => setShowAll(!showAll)}
+          className="px-3 py-1 border border-gray-200 hover:border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          {showAll ? "View less" : "View all"}
+        </button>
       </div>
 
       {/* Table Container */}
@@ -73,7 +82,7 @@ export default function RecentActivitiesTable({ activities }: RecentActivitiesTa
         <table className="w-full text-left text-xs border-collapse">
           {/* Table Header */}
           <thead>
-            <tr className="border-b border-gray-100 text-gray-700 font-semibold bg-gray-50/40">
+            <tr className="border-b border-gray-100 text-gray-600 font-semibold bg-gray-50/40">
               <th className="py-3.5 px-6">Activity</th>
               <th className="py-3.5 px-6">Reference</th>
               <th className="py-3.5 px-6">Date & Time</th>
@@ -141,7 +150,7 @@ export default function RecentActivitiesTable({ activities }: RecentActivitiesTa
       </div>
 
       {/* Table Footer & Pagination */}
-      <div className="py-3.5 px-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 select-none">
+      <div className="py-3.5 px-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 select-none bg-white">
         {/* Entries Count */}
         <div className="text-xs text-gray-500">
           Showing 1 to {activities.length} of 50 entries
@@ -253,4 +262,3 @@ export default function RecentActivitiesTable({ activities }: RecentActivitiesTa
     </div>
   );
 }
-
