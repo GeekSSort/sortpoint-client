@@ -79,8 +79,6 @@ jobs:
             echo "Deploying Client on Contabo (13.140.141.131)..."
             cd /opt/apps/sortpoint/client
             git pull origin main
-            npm ci
-            npm run build
-            pm2 restart sortpoint-client || pm2 start npm --name "sortpoint-client" -- start
+            docker compose -f docker-compose.prod.yml up -d --build
             echo "Client Deployment Completed Successfully!"
 

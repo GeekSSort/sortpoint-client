@@ -1,0 +1,16 @@
+services:
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://13.140.141.131:4500/api/v1}
+    container_name: sortpoint-client
+    restart: unless-stopped
+    ports:
+      - "${CLIENT_PORT:-3500}:3500"
+    environment:
+      - NODE_ENV=production
+      - PORT=3500
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://13.140.141.131:4500/api/v1}
