@@ -41,13 +41,22 @@ export async function apiFetch<T>(
   if (API_BASE_URL) {
     try {
       const url = `${API_BASE_URL.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...((fetchOptions.headers as Record<string, string>) || {}),
+      };
+
+      if (typeof window !== "undefined" && !headers["Authorization"]) {
+        const token = localStorage.getItem("access_token") || localStorage.getItem("token");
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+      }
+
       const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          ...fetchOptions.headers,
-        },
         ...fetchOptions,
+        headers,
       });
 
       if (response.ok) {
