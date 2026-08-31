@@ -8,8 +8,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { AuthService } from "@/services";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("samcurrent@gmail.com");
-  const [password, setPassword] = useState("********");
+  const [email, setEmail] = useState("admin@sortpoint.test");
+  const [password, setPassword] = useState("correct-horse-battery-staple");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
