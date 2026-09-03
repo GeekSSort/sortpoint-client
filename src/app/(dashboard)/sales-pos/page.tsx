@@ -57,20 +57,25 @@ export default function SalesPosPage() {
     setCart([]);
   };
 
+  const handleRestoreCart = (items: CartItem[]) => {
+    setCart(items);
+  };
+
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-5 pb-6">
-      {/* Product Catalog Grid Section (Left) */}
-      <div className="flex-1 min-w-0">
+    <div className="grid w-full grid-cols-1 gap-[31px] lg:grid-cols-2">
+      {/* Product list (left) — 45:2171 */}
+      <div className="min-w-0">
         <ProductGrid onSelectProduct={handleSelectProduct} />
       </div>
 
-      {/* Cart & Checkout Panel (Right) */}
-      <div className="w-full lg:w-[380px] xl:w-[410px] shrink-0">
+      {/* Cart & checkout (right) — 45:2333 */}
+      <div className="min-w-0">
         <CartPanel
           cart={cart}
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}
+          onRestoreCart={handleRestoreCart}
         />
       </div>
     </div>

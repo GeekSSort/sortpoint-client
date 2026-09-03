@@ -1,23 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { 
-  Search, 
-  ScanBarcode, 
-  MoreVertical, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronDown 
-} from "lucide-react";
-import { ProductItem, ProductCategory } from "@/types/pos";
+import { ProductCategory, ProductItem } from "@/types/pos";
 import { PosService } from "@/services";
+import TablePagination from "@/components/shared/TablePagination";
 
-interface ProductGridProps {
-  onSelectProduct?: (product: ProductItem) => void;
-}
+/**
+ * Figma: SORTPoint — POS product list 45:2171.
+ *
+ * 565-wide column: a 44px search bar, 16px gap, then the category row (40px),
+ * 24px gap and a 3-up grid of 180x248 cards (12.5 across, 14 down) over a 48px
+ * pagination bar.
+ *
+ * Below the design width the grid reflows on its own track size rather than
+ * holding three columns — mine, no Figma frame for it.
+ */
 
-const categories: ProductCategory[] = [
+const CATEGORIES: ProductCategory[] = [
   "All Categories",
   "Electronics",
   "Groceries",
@@ -25,185 +25,189 @@ const categories: ProductCategory[] = [
   "Home & Living",
 ];
 
+/** Node 45:2174 — magnifier. */
+function SearchIcon() {
+  return (
+    <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M16 16L21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M8.5 3.75a6.75 6.75 0 0 1 6.75 6.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.45"
+      />
+    </svg>
+  );
+}
+
+/** Node 45:2179 — barcode scan. */
+function ScanIcon() {
+  return (
+    <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path d="M7 8.5v7M10 8.5v7M13.5 8.5v7M17 8.5v7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** vuesax/linear/more, turned upright — node 45:2196. */
+function MoreIcon() {
+  return (
+    <svg className="block size-[16px] -rotate-90" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M3.33333 6.66667C2.6 6.66667 2 7.26667 2 8C2 8.73333 2.6 9.33333 3.33333 9.33333C4.06667 9.33333 4.66667 8.73333 4.66667 8C4.66667 7.26667 4.06667 6.66667 3.33333 6.66667Z" fill="currentColor" />
+      <path d="M12.6667 6.66667C11.9333 6.66667 11.3333 7.26667 11.3333 8C11.3333 8.73333 11.9333 9.33333 12.6667 9.33333C13.4 9.33333 14 8.73333 14 8C14 7.26667 13.4 6.66667 12.6667 6.66667Z" fill="currentColor" />
+      <path d="M8 6.66667C7.26667 6.66667 6.66667 7.26667 6.66667 8C6.66667 8.73333 7.26667 9.33333 8 9.33333C8.73333 9.33333 9.33333 8.73333 9.33333 8C9.33333 7.26667 8.73333 6.66667 8 6.66667Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+interface ProductGridProps {
+  onSelectProduct?: (product: ProductItem) => void;
+}
+
 export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   const [products, setProducts] = useState<ProductItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>("All Categories");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [category, setCategory] = useState<ProductCategory>("All Categories");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
 
   useEffect(() => {
-    PosService.getProducts(selectedCategory, searchQuery).then((data) => {
-      setProducts(data);
-    });
-  }, [selectedCategory, searchQuery]);
+    PosService.getProducts().then(setProducts).catch(() => {});
+  }, []);
 
-  const filteredProducts = products;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter(
+      (p) =>
+        (category === "All Categories" || p.category === category) &&
+        (!q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
+    );
+  }, [products, category, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const current = Math.min(page, totalPages);
+  const shown = filtered.slice((current - 1) * pageSize, current * pageSize);
 
   return (
-    <div className="flex flex-col gap-4 flex-1 select-none">
-      {/* Search Input Bar with Barcode Scanner Icon */}
-      <div className="relative w-full flex items-center">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search product by name, SKU or barcode..."
-          className="w-full pl-10 pr-11 py-2.5 bg-white rounded-xl border border-gray-200 text-xs sm:text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-2xs"
-        />
+    <div className="flex w-full flex-col">
+      {/* Search — 45:2172 */}
+      <div className="flex h-[44px] w-full shrink-0 items-center justify-between overflow-clip rounded-[10px] bg-white px-[12px] py-[10px] shadow-[inset_0_0_0_1px_#eaeaea]">
+        <div className="flex min-w-0 flex-1 items-center gap-[6px] text-[#525252]">
+          <SearchIcon />
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search product by name, SKU or barcode..."
+            aria-label="Search products"
+            className="min-w-0 flex-1 bg-transparent text-[14px] leading-[1.5] font-normal tracking-[-0.28px] text-[#525252] outline-none placeholder:text-[#525252]"
+          />
+        </div>
         <button
           type="button"
           aria-label="Scan barcode"
-          title="Scan barcode"
-          className="absolute right-3 text-gray-500 hover:text-gray-800 transition-colors p-1"
+          className="shrink-0 cursor-pointer text-[#525252] transition-colors hover:text-[#1e1e1e]"
         >
-          <ScanBarcode className="w-4 h-4" />
+          <ScanIcon />
         </button>
       </div>
 
-      {/* Category Tabs Row */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1">
-        <div className="flex items-center gap-2">
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat;
+      {/* Categories — 45:2183, 16px below the search bar */}
+      <div className="mt-[16px] flex w-full shrink-0 items-center justify-between gap-[12px]">
+        <div className="-mx-[2px] flex h-[40px] min-w-0 flex-1 items-center gap-[2px] overflow-x-auto px-[2px]">
+          {CATEGORIES.map((c) => {
+            const active = c === category;
             return (
               <button
-                key={cat}
+                key={c}
                 type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? "border border-amber-400 text-amber-500 bg-white shadow-2xs"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/70"
+                onClick={() => {
+                  setCategory(c);
+                  setPage(1);
+                }}
+                className={`flex shrink-0 cursor-pointer items-center justify-center rounded-[10px] whitespace-nowrap transition-colors ${
+                  active
+                    ? "h-[40px] border-[0.8px] border-solid border-[#f5b800] px-[12px] py-[10px] text-[16px] leading-[1.2] tracking-[-0.48px] text-[#f5b800]"
+                    : "p-[10px] text-[14px] leading-[1.2] tracking-[-0.42px] text-[#525252] hover:bg-[#fafafa]"
                 }`}
               >
-                {cat}
+                {c}
               </button>
             );
           })}
         </div>
 
-        {/* More Options / Filter Button */}
         <button
           type="button"
-          className="p-1.5 rounded-xl border border-gray-200 hover:border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
+          aria-label="More filters"
+          className="flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-clip rounded-[10px] border border-solid border-[#eaeaea] bg-white text-[#1e1e1e] shadow-[0px_1px_2px_0px_rgba(82,88,102,0.06)] transition-colors hover:bg-[#fafafa]"
         >
-          <MoreVertical className="w-4 h-4" />
+          <MoreIcon />
         </button>
       </div>
 
-      {/* 3x3 Product Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4">
-        {filteredProducts.map((product) => (
-          <div
-            key={product.id}
-            onClick={() => onSelectProduct?.(product)}
-            className="bg-white rounded-2xl p-3 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-amber-300/80 transition-all cursor-pointer group flex flex-col justify-between"
+      {/* Grid — 45:2197, 24px below the category row */}
+      <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-[12.5px] gap-y-[14px]">
+        {shown.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onSelectProduct?.(p)}
+            className="flex cursor-pointer items-center overflow-clip rounded-[10px] border-[0.6px] border-solid border-[#eaeaea] bg-white p-[10px] text-left transition-colors hover:border-[#f5b800]"
           >
-            {/* Product Image Container */}
-            <div className="w-full h-[120px] sm:h-[135px] bg-[#F9FAFB] rounded-xl relative overflow-hidden flex items-center justify-center p-3">
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-
-            {/* Product Info */}
-            <div className="mt-2.5">
-              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                {product.name}
-              </h4>
-
-              {/* Price & Stock status */}
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-xs sm:text-sm font-bold text-[#F4B41A]">
-                  {product.priceFormatted}
-                </span>
-
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Stock {product.stock}
-                </span>
+            <div className="flex w-full flex-col items-center justify-center gap-[12px]">
+              <div className="relative aspect-square w-full overflow-hidden rounded-[8px] border-[0.3px] border-solid border-[#eaeaea]">
+                <Image src={p.image} alt={p.name} fill sizes="180px" className="object-cover" />
+              </div>
+              <div className="flex w-full flex-col items-start gap-[8px]">
+                <p className="w-full truncate text-[14px] leading-[24px] font-normal text-[#525252]">
+                  {p.name}
+                </p>
+                <div className="flex w-full items-center justify-between gap-[6px]">
+                  <span className="text-[16px] leading-[24px] font-medium whitespace-nowrap text-[#f5b800]">
+                    {p.priceFormatted}
+                  </span>
+                  <span className="flex h-[24px] shrink-0 items-center gap-[7px] overflow-clip rounded-[17px] bg-[#f5fff8] px-[8px]">
+                    <span className="size-[6px] shrink-0 rounded-full bg-[#00b837]" />
+                    <span className="text-[12px] leading-normal font-normal tracking-[-0.24px] whitespace-nowrap text-[#00b837]">
+                      Stock {p.stock}
+                    </span>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
-      {/* Product Grid Pagination Footer */}
-      <div className="mt-2 py-3 px-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 select-none">
-        <div>
-          Showing 1 to {filteredProducts.length} of 50 entries
-        </div>
+      {filtered.length === 0 && (
+        <p className="py-[40px] text-center text-[14px] text-[#525252]">No products match that search.</p>
+      )}
 
-        {/* Page Size Selector */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
-            className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <span>Show {pageSize}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-          </button>
-
-          {isPageSizeOpen && (
-            <div className="absolute bottom-full mb-1 left-0 w-24 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-30">
-              {[8, 15, 25, 50].map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => {
-                    setPageSize(size);
-                    setIsPageSizeOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-1 text-xs hover:bg-amber-50 hover:text-[#F4B41A] ${
-                    pageSize === size ? "font-bold text-[#F4B41A]" : "text-gray-700"
-                  }`}
-                >
-                  Show {size}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Page Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-900">
-            1
-          </button>
-          <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-            2
-          </button>
-          <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-            3
-          </button>
-          <span className="px-1 text-gray-400 text-xs">..</span>
-          <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-            10
-          </button>
-          <button
-            type="button"
-            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      {/* Pagination — 45:2309, 14px under the grid */}
+      <div className="mt-[14px]">
+        <TablePagination
+          dense
+          page={current}
+          pageSize={pageSize}
+          total={filtered.length}
+          onPageChange={setPage}
+          onPageSizeChange={(n) => {
+            setPageSize(n);
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );
 }
-

@@ -1,385 +1,410 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Calendar,
-  Plus,
-  Search,
-  Filter,
-  MoreVertical,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  X,
-} from "lucide-react";
 import { ReturnRecord } from "@/types/returns";
 import { ReturnService } from "@/services";
+import StatusPill, { Tone } from "@/components/shared/StatusPill";
+import RowActionMenu from "@/components/shared/RowActionMenu";
+import TablePagination from "@/components/shared/TablePagination";
+import DateField from "@/components/shared/DateField";
+import { matchesDay } from "@/lib/dateFilter";
+import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
+
+/**
+ * Figma: SORTPoint — Return 45:4116.
+ *
+ * 1160 page: a 48px headline with the search field on the LEFT and the date
+ * field + Add New on the right, then an 878px card — 48px head with a centred
+ * title, a 1128-wide nine-column table (40px head, 54px rows) and the 64px
+ * pagination bar.
+ *
+ * Below md the rows become stacked cards; between md and the design width the
+ * table scrolls in its own container. Mine, no Figma frame for either.
+ */
+
+const STATUS_TONE: Record<ReturnRecord["status"], Tone> = {
+  Paid: "green",
+  Unpaid: "orange",
+  Pending: "amber",
+  Rejected: "red",
+};
+
+/** Node 48:5997 — add. */
+function AddIcon() {
+  return (
+    <svg className="block size-[20px] shrink-0" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <rect x="0.9" y="0.9" width="18.2" height="18.2" rx="5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 6.4v7.2M6.4 10h7.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M16 16L21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg className="block size-[18px] shrink-0" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M2.25 4.5h13.5M4.5 9h9M7.5 13.5h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const GRID = "grid-cols-[145fr_145fr_185fr_130fr_120fr_120fr_100fr_100fr_83fr]";
+const CELL = "flex min-w-0 items-center p-[12px]";
+const HEAD = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#1e1e1e]";
+const TEXT = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#525252]";
 
 export default function ReturnPage() {
   const [returns, setReturns] = useState<ReturnRecord[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState("24 August 2026");
+  const [query, setQuery] = useState("");
+  const [date, setDate] = useState<Date | null>(null);
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  // New return form state
-  const [invoiceNo, setInvoiceNo] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [refundAmount, setRefundAmount] = useState<number | "">("");
-  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [note, setNote] = useState<string | null>(null);
+  const [detailOf, setDetailOf] = useState<ReturnRecord | null>(null);
+  const [slipOf, setSlipOf] = useState<ReturnRecord | null>(null);
+  const [decideOn, setDecideOn] = useState<{ row: ReturnRecord; to: ReturnRecord["status"] } | null>(null);
+  const [working, setWorking] = useState(false);
 
   useEffect(() => {
-    ReturnService.getReturns({ search: searchQuery }).then((res) => {
-      setReturns(res.data);
-    });
-  }, [searchQuery]);
+    ReturnService.getReturns({ search: query })
+      .then((res) => setReturns(res.data))
+      .catch(() => {});
+  }, [query]);
 
-  const handleCreateReturn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!invoiceNo || !customerName || !refundAmount) return;
-
-    const newRecord = await ReturnService.processRefund({
-      invoiceNo,
-      customerName,
-      refundAmount: Number(refundAmount),
-      paymentMethod,
-    });
-
-    setReturns((prev) => [newRecord, ...prev]);
-    setIsAddModalOpen(false);
-    setInvoiceNo("");
-    setCustomerName("");
-    setRefundAmount("");
-  };
+  const visible = useMemo(() => returns.filter((r) => matchesDay(r.dateTime, date)), [returns, date]);
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const current = Math.min(page, totalPages);
+  const rows = useMemo(
+    () => visible.slice((current - 1) * pageSize, current * pageSize),
+    [visible, current, pageSize]
+  );
 
   return (
-    <div className="w-full flex flex-col gap-5 pb-8 select-none">
-      {/* Top Page Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Title & Subtitle */}
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            Return
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Manage product returns, refund &amp; return request
-          </p>
-        </div>
-
-        {/* Date Filter & Add New Buttons */}
-        <div className="flex items-center gap-3">
-          {/* Date Selector Pill */}
+    <div className="flex w-full flex-col gap-[14px] select-none">
+      {/* Headline — 45:4118: search left, date + Add New right */}
+      <div className="flex w-full flex-col items-stretch gap-[16px] lg:h-[48px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
+        <div className="flex h-[44px] w-full items-center justify-between gap-[12px] overflow-clip rounded-[10px] bg-white px-[12px] py-[10px] shadow-[inset_0_0_0_1px_#eaeaea] lg:w-[370px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[6px] text-[#525252]">
+            <SearchIcon />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by return ID, Invoice No. or Customer..."
+              aria-label="Search returns"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[1.5] tracking-[-0.28px] text-[#525252] outline-none placeholder:text-[#525252]"
+            />
+          </div>
           <button
             type="button"
-            className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors cursor-pointer"
+            aria-label="Filter"
+            onClick={() => setNote("Filter panel not designed yet")}
+            className="shrink-0 cursor-pointer text-[#525252] transition-colors hover:text-[#1e1e1e]"
           >
-            <span>{selectedDate}</span>
-            <Calendar className="w-4 h-4 text-gray-400" />
+            <FilterIcon />
           </button>
+        </div>
 
-          {/* Add New Button */}
+        <div className="flex shrink-0 items-center gap-[16px]">
+          <DateField value={date} onChange={setDate} ariaLabel="Filter returns by date" />
+
           <Link
             href="/sales-pos/return/new"
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgb(245,184,0) 0%, rgb(245,184,0) 100%)",
+            }}
+            className="flex h-[48px] shrink-0 cursor-pointer items-center justify-center gap-[12px] rounded-[12px] px-[16px] py-[8px] text-[16px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)]"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Add New</span>
+            <AddIcon />
+            Add New
           </Link>
         </div>
       </div>
 
-      {/* Return List Container Card */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Card Header: Return List Title + Search & Filter */}
-        <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
-          <h3 className="text-base font-bold text-gray-900">
-            Return List
-          </h3>
+      {/* Table card — 48:5494 */}
+      <div className="w-full overflow-hidden rounded-[12px] bg-white shadow-[inset_0_0_0_1px_#eaeaea]">
+        {/* Table — 48:5511 */}
+        <div className="hidden px-[16px] pt-[16px] md:block">
+          <div className="overflow-x-auto">
+            <div className="min-w-[1050px]">
+              <div className={`grid ${GRID} items-start overflow-clip rounded-[6px] shadow-[inset_0_0_0_1px_#eaeaea]`}>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Return No.</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Invoice No.</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Date &amp; Time</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Customer</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Total Amount</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Refund</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Payment</span></div>
+                <div className={`${CELL} h-[40px] justify-center bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Status</span></div>
+                <div className={`${CELL} h-[40px] justify-center bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Action</span></div>
+              </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-[360px]">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by return ID, Invoice No. or Customer..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-amber-400 transition-colors"
-              />
+              <div className="mt-[6px]">
+                {rows.length === 0 && (
+                  <p className="py-[40px] text-center text-[14px] text-[#525252]">No returns match that search or date.</p>
+                )}
+                {rows.map((r, i) => (
+                  <div
+                    key={r.id}
+                    className={`grid ${GRID} h-[54px] items-center ${i === rows.length - 1 ? "" : "border-b border-solid border-[#eaeaea]"}`}
+                  >
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.returnNo}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.invoiceNo}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.dateTime}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.customerName}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.totalAmountFormatted}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.refundAmountFormatted}</span></div>
+                    <div className={`${CELL}`}><span className={`${TEXT} truncate`}>{r.paymentMethod}</span></div>
+                    <div className={`${CELL} justify-center`}>
+                      <StatusPill label={r.status} tone={STATUS_TONE[r.status] ?? "slate"} />
+                    </div>
+                    <div className={`${CELL} justify-center`}>
+                      <RowActionMenu
+                        label={`Actions for ${r.returnNo}`}
+                        actions={[
+                          { label: "View return", onSelect: () => setDetailOf(r) },
+                          { label: "Print slip", onSelect: () => setSlipOf(r) },
+                          r.status === "Paid"
+                            ? {
+                                label: "Withdraw approval",
+                                onSelect: () => setDecideOn({ row: r, to: "Pending" }),
+                              }
+                            : {
+                                label: "Approve refund",
+                                onSelect: () => setDecideOn({ row: r, to: "Paid" }),
+                              },
+                          ...(r.status === "Rejected" || r.status === "Paid"
+                            ? []
+                            : [
+                                {
+                                  label: "Reject return",
+                                  onSelect: () => setDecideOn({ row: r, to: "Rejected" as const }),
+                                },
+                              ]),
+                        ]}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {/* Filter Funnel Button */}
-            <button
-              type="button"
-              title="Filter returns"
-              className="p-2 border border-gray-200 hover:border-gray-300 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
-            >
-              <Filter className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
-                <th className="py-3.5 px-5 font-semibold">Return No.</th>
-                <th className="py-3.5 px-5 font-semibold">Invoice No.</th>
-                <th className="py-3.5 px-5 font-semibold">Date &amp; Time</th>
-                <th className="py-3.5 px-5 font-semibold">Customer</th>
-                <th className="py-3.5 px-5 font-semibold">Total Amount</th>
-                <th className="py-3.5 px-5 font-semibold">Refund</th>
-                <th className="py-3.5 px-5 font-semibold">Payment</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Status</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 text-xs font-medium text-gray-700">
-              {returns.map((item, idx) => (
-                <tr
-                  key={`${item.id}-${idx}`}
-                  className="hover:bg-gray-50/80 transition-colors"
-                >
-                  {/* Return No. */}
-                  <td className="py-4 px-5 text-gray-600 font-medium">
-                    {item.returnNo}
-                  </td>
-
-                  {/* Invoice No. */}
-                  <td className="py-4 px-5 text-gray-500">
-                    {item.invoiceNo}
-                  </td>
-
-                  {/* Date & Time */}
-                  <td className="py-4 px-5 text-gray-500">
-                    {item.dateTime}
-                  </td>
-
-                  {/* Customer */}
-                  <td className="py-4 px-5 font-semibold text-gray-900">
-                    {item.customerName}
-                  </td>
-
-                  {/* Total Amount */}
-                  <td className="py-4 px-5 font-bold text-gray-900">
-                    {item.totalAmountFormatted}
-                  </td>
-
-                  {/* Refund Amount */}
-                  <td className="py-4 px-5 font-bold text-gray-900">
-                    {item.refundAmountFormatted}
-                  </td>
-
-                  {/* Payment Method */}
-                  <td className="py-4 px-5 text-gray-600">
-                    {item.paymentMethod}
-                  </td>
-
-                  {/* Status Badge */}
-                  <td className="py-4 px-5 text-center">
-                    {item.status === "Paid" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-600 border border-orange-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                        Unpaid
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Action 3 Dots */}
-                  <td className="py-4 px-5 text-center">
-                    <button
-                      type="button"
-                      title="More actions"
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer inline-flex items-center justify-center"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Stacked cards below md */}
+        <div className="flex flex-col gap-[10px] px-[16px] pt-[16px] md:hidden">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-[10px] border border-solid border-[#eaeaea] p-[12px]">
+              <div className="flex items-start justify-between gap-[10px]">
+                <div className="min-w-0">
+                  <p className={`${TEXT} truncate !text-[#1e1e1e]`}>{r.returnNo}</p>
+                  <p className="mt-[2px] truncate text-[12px] tracking-[-0.24px] text-[#525252]">
+                    {r.invoiceNo} · {r.customerName}
+                  </p>
+                </div>
+                <StatusPill label={r.status} tone={STATUS_TONE[r.status] ?? "slate"} />
+              </div>
+              <div className="mt-[10px] flex items-center justify-between gap-[10px]">
+                <span className="truncate text-[12px] tracking-[-0.24px] text-[#525252]">{r.dateTime}</span>
+                <span className={`${TEXT} shrink-0`}>{r.refundAmountFormatted}</span>
+              </div>
+              <p className="mt-[4px] text-[12px] tracking-[-0.24px] text-[#525252]">{r.paymentMethod}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Footer / Pagination Controls */}
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 text-xs text-gray-500">
-          {/* Entries summary */}
-          <div className="flex items-center gap-4">
-            <span>Showing 1 to {Math.min(pageSize, returns.length)} of 50 entries</span>
+        {note && <p className="px-[16px] pt-[10px] text-[13px] text-[#525252]">{note}</p>}
 
-            {/* Page Size Selector */}
-            <div className="relative inline-flex items-center">
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <span>Show {pageSize}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Page Numbers & Nav */}
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(1)}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-xs bg-gray-50 text-gray-900 transition-colors cursor-pointer"
-            >
-              1
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(2)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              2
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(3)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              3
-            </button>
-
-            <span className="px-1 text-gray-400 font-bold">...</span>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(10)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              10
-            </button>
-
-            <button
-              type="button"
-              disabled={currentPage === 10}
-              onClick={() => setCurrentPage((p) => Math.min(10, p + 1))}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Pagination — 48:5835 */}
+        <div className="mt-[9px]">
+          <TablePagination
+            page={current}
+            pageSize={pageSize}
+            total={visible.length}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
 
-      {/* Add New Return Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-              <h4 className="text-base font-bold text-gray-900">Create New Return</h4>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* View return */}
+      <Modal
+        open={detailOf !== null}
+        onClose={() => setDetailOf(null)}
+        title={`Return ${detailOf?.returnNo ?? ""}`}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setDetailOf(null)}>
+              Close
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => {
+                setSlipOf(detailOf);
+                setDetailOf(null);
+              }}
+            >
+              Print slip
+            </button>
+          </>
+        }
+      >
+        {detailOf && (
+          <dl className="flex flex-col gap-[12px]">
+            {[
+              ["Return No.", detailOf.returnNo],
+              ["Invoice No.", detailOf.invoiceNo],
+              ["Date & Time", detailOf.dateTime],
+              ["Customer", detailOf.customerName],
+              ["Total Amount", detailOf.totalAmountFormatted],
+              ["Refund", detailOf.refundAmountFormatted],
+              ["Payment", detailOf.paymentMethod],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between gap-[16px]">
+                <dt className="text-[14px] text-[#525252]">{k}</dt>
+                <dd className="text-[14px] font-medium text-[#1e1e1e]">{v}</dd>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-[16px]">
+              <dt className="text-[14px] text-[#525252]">Status</dt>
+              <dd>
+                <StatusPill label={detailOf.status} tone={STATUS_TONE[detailOf.status] ?? "slate"} />
+              </dd>
             </div>
+          </dl>
+        )}
+      </Modal>
 
-            <form onSubmit={handleCreateReturn} className="flex flex-col gap-3.5">
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Invoice Number
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. INV-2024-00125"
-                  value={invoiceNo}
-                  onChange={(e) => setInvoiceNo(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Rahim Uddin"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">
-                    Refund Amount (৳)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 5000"
-                    value={refundAmount}
-                    onChange={(e) => setRefundAmount(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">
-                    Payment Method
-                  </label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-amber-400"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="bKash">bKash</option>
-                    <option value="Card">Card</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#F4B41A] hover:bg-[#E5A612] shadow-xs transition-colors"
-                >
-                  Submit Return
-                </button>
-              </div>
-            </form>
+      {/* Print slip — the print stylesheet hides everything but .print-area */}
+      <Modal
+        open={slipOf !== null}
+        onClose={() => setSlipOf(null)}
+        title="Return slip"
+        width={420}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setSlipOf(null)}>
+              Close
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => window.print()}
+            >
+              Print
+            </button>
+          </>
+        }
+      >
+        {slipOf && (
+          <div className="print-area flex flex-col gap-[10px] text-[13px] text-[#525252]">
+            <p className="text-center text-[16px] font-semibold text-[#1e1e1e]">SORTPoint</p>
+            <p className="text-center text-[12px]">Return / Refund slip</p>
+            <div className="my-[6px] h-px w-full bg-[#eaeaea]" />
+            <p className="flex justify-between"><span>Return</span><span className="font-medium text-[#1e1e1e]">{slipOf.returnNo}</span></p>
+            <p className="flex justify-between"><span>Against invoice</span><span>{slipOf.invoiceNo}</span></p>
+            <p className="flex justify-between"><span>Date</span><span>{slipOf.dateTime}</span></p>
+            <p className="flex justify-between"><span>Customer</span><span>{slipOf.customerName}</span></p>
+            <p className="flex justify-between"><span>Payment</span><span>{slipOf.paymentMethod}</span></p>
+            <p className="flex justify-between"><span>Status</span><span>{slipOf.status}</span></p>
+            <div className="my-[6px] h-px w-full bg-[#eaeaea]" />
+            <p className="flex justify-between text-[15px] font-semibold text-[#1e1e1e]">
+              <span>Refund</span>
+              <span>{slipOf.refundAmountFormatted}</span>
+            </p>
+            <p className="mt-[8px] text-center text-[12px]">Customer signature ____________________</p>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
+
+      {/* Approve / withdraw / reject — one dialog, driven by the target status */}
+      <Modal
+        open={decideOn !== null}
+        onClose={() => setDecideOn(null)}
+        title={
+          decideOn?.to === "Paid"
+            ? "Approve refund"
+            : decideOn?.to === "Rejected"
+              ? "Reject return"
+              : "Withdraw approval"
+        }
+        width={440}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setDecideOn(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={working}
+              style={{ backgroundImage: decideOn?.to === "Rejected" ? RED_GRADIENT : GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => {
+                if (!decideOn) return;
+                setWorking(true);
+                // Optimistic: the mock backend has no approval endpoint yet.
+                setReturns((list) =>
+                  list.map((x) => (x.id === decideOn.row.id ? { ...x, status: decideOn.to } : x))
+                );
+                setNote(`${decideOn.row.returnNo} → ${decideOn.to}`);
+                setDecideOn(null);
+                setWorking(false);
+              }}
+            >
+              {working
+                ? "Working…"
+                : decideOn?.to === "Paid"
+                  ? "Confirm approval"
+                  : decideOn?.to === "Rejected"
+                    ? "Confirm rejection"
+                    : "Confirm withdrawal"}
+            </button>
+          </>
+        }
+      >
+        {decideOn && (
+          <p className="text-[14px] leading-[1.6] text-[#525252]">
+            {decideOn.to === "Paid" && (
+              <>
+                Pay out <span className="font-medium text-[#1e1e1e]">{decideOn.row.refundAmountFormatted}</span>{" "}
+                for return <span className="font-medium text-[#1e1e1e]">{decideOn.row.returnNo}</span> to{" "}
+                <span className="font-medium text-[#1e1e1e]">{decideOn.row.customerName}</span>?
+              </>
+            )}
+            {decideOn.to === "Rejected" && (
+              <>
+                Reject return <span className="font-medium text-[#1e1e1e]">{decideOn.row.returnNo}</span>? No
+                refund will be paid.
+              </>
+            )}
+            {decideOn.to === "Pending" && (
+              <>
+                Withdraw the approved refund on{" "}
+                <span className="font-medium text-[#1e1e1e]">{decideOn.row.returnNo}</span>? It goes back to
+                Pending.
+              </>
+            )}
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }
-
