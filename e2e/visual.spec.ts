@@ -55,13 +55,27 @@ for (const [name, path] of routes) {
 test("Sidebar — submenu expanded", async ({ page }) => {
   await page.goto("/dashboard");
   await settle(page);
-  await page.getByRole("link", { name: "Sales & POS" }).click();
+  // A section header is a button that expands its own submenu, not a link —
+  // it navigates nowhere, it reveals the routes underneath it.
+  await page.getByRole("button", { name: "Sales & POS" }).click();
   await expect(page.getByRole("link", { name: "Return", exact: true })).toBeVisible();
 });
 
-test("Sidebar — collapsed", async ({ page }) => {
+test("Sidebar — drawer below lg", async ({ page }) => {
+  // The rail is permanent from lg up; collapsing only exists below it, where the
+  // sidebar is a drawer that slides in from the left rather than resizing.
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dashboard");
   await settle(page);
-  await page.getByRole("button", { name: "Minimize sidebar" }).click();
-  await expect(page.locator("aside")).toHaveCSS("width", "0px");
+
+  const aside = page.locator("aside");
+  await expect(aside).toBeVisible();
+  const closed = await aside.boundingBox();
+  expect(closed?.x ?? 0).toBeLessThan(0); // parked off-canvas on first paint
+
+  await page.getByRole("button", { name: "Toggle navigation" }).click();
+  await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeInViewport();
+  // Polled, not read once: the drawer slides in over 300ms, so a single read
+  // catches it mid-transition.
+  await expect.poll(async () => (await aside.boundingBox())?.x).toBe(0);
 });
