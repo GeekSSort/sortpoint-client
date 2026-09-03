@@ -1,268 +1,420 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import {
-  Calendar,
-  Search,
-  Filter,
-  MoreVertical,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-} from "lucide-react";
 import { PurchaseRecord } from "@/types/purchases";
 import { PurchaseService } from "@/services";
+import StatusPill, { Tone } from "@/components/shared/StatusPill";
+import RowActionMenu from "@/components/shared/RowActionMenu";
+import TablePagination from "@/components/shared/TablePagination";
+import DateField from "@/components/shared/DateField";
+import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/shared/Modal";
+import { matchesDay } from "@/lib/dateFilter";
 
-export default function PurchaseHistoryPage() {
+/**
+ * Figma: SORTPoint — Purchase History 59:15218.
+ *
+ * Search left, date field right (this screen has no Add New); an 898px card
+ * with the 1128-wide eight-column table (40px head, 54px rows) over the 64px
+ * pagination bar.
+ */
+
+const PAYMENT_TONE: Record<PurchaseRecord["paymentStatus"], Tone> = {
+  Paid: "green",
+  Due: "gold",
+  // Not drawn in the design; same construction, amber.
+  Partial: "amber",
+};
+
+const STATUS_TONE: Record<PurchaseRecord["status"], Tone> = {
+  Received: "green",
+  Pending: "gold",
+  Ordered: "slate",
+  Cancelled: "rose",
+};
+
+function SearchIcon() {
+  return (
+    <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M16 16L21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg className="block size-[18px] shrink-0" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M2.25 4.5h13.5M4.5 9h9M7.5 13.5h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Purchase ID  Supplier  Purchase Date  Items  Total Amount  Payment Status  Status  Action
+const GRID = "grid-cols-[157fr_220fr_144fr_114fr_130fr_140fr_140fr_83fr]";
+const CELL = "flex min-w-0 items-center p-[12px]";
+const HEAD = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#1e1e1e]";
+const TEXT = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#525252]";
+
+export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState("24 August 2026");
+  const [query, setQuery] = useState("");
+  const [date, setDate] = useState<Date | null>(null);
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [note, setNote] = useState<string | null>(null);
+  const [detailOf, setDetailOf] = useState<PurchaseRecord | null>(null);
+  const [receiptOf, setReceiptOf] = useState<PurchaseRecord | null>(null);
+  const [markOf, setMarkOf] = useState<{ row: PurchaseRecord; kind: "received" | "paid" } | null>(null);
 
   useEffect(() => {
-    PurchaseService.getPurchases({ search: searchQuery }).then((res) => {
-      setPurchases(res.data);
-    });
-  }, [searchQuery]);
+    PurchaseService.getPurchases({ search: query })
+      .then((res) => setPurchases(res.data))
+      .catch(() => {});
+  }, [query]);
+
+  const visible = useMemo(
+    () => purchases.filter((p) => matchesDay(p.purchaseDate, date)),
+    [purchases, date]
+  );
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const current = Math.min(page, totalPages);
+  const rows = useMemo(
+    () => visible.slice((current - 1) * pageSize, current * pageSize),
+    [visible, current, pageSize]
+  );
 
   return (
-    <div className="w-full flex flex-col gap-5 pb-8 select-none">
-      {/* Top Page Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Title & Subtitle */}
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-            Purchase History
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Track, review, and manage all purchase transactions in one place.
-          </p>
-        </div>
-
-        {/* Date Filter */}
-        <div className="flex items-center gap-3">
+    <div className="flex w-full flex-col gap-[14px] select-none">
+      {/* Headline — 59:15220 */}
+      <div className="flex w-full flex-col items-stretch gap-[16px] lg:h-[48px] lg:flex-row lg:items-center lg:justify-between lg:gap-0">
+        <div className="flex h-[44px] w-full items-center justify-between gap-[12px] overflow-clip rounded-[10px] bg-white px-[12px] py-[10px] shadow-[inset_0_0_0_1px_#eaeaea] lg:w-[370px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[6px] text-[#525252]">
+            <SearchIcon />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by Purchase ID or Supplier..."
+              aria-label="Search purchases"
+              className="min-w-0 flex-1 bg-transparent text-[14px] leading-[1.5] tracking-[-0.28px] text-[#525252] outline-none placeholder:text-[#525252]"
+            />
+          </div>
           <button
             type="button"
-            className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors cursor-pointer"
+            aria-label="Filter"
+            onClick={() => setNote("Filter panel not designed yet")}
+            className="shrink-0 cursor-pointer text-[#525252] transition-colors hover:text-[#1e1e1e]"
           >
-            <span>{selectedDate}</span>
-            <Calendar className="w-4 h-4 text-gray-400" />
+            <FilterIcon />
           </button>
         </div>
+
+        <DateField value={date} onChange={setDate} ariaLabel="Filter purchases by date" />
       </div>
 
-      {/* Purchase List Container Card */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_25px_rgba(0,0,0,0.02)] overflow-hidden">
-        {/* Card Header: Purchase List Title + Search & Filter */}
-        <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50">
-          <h3 className="text-base font-bold text-gray-900">
-            Purchase List
-          </h3>
+      {/* Table card — 59:15252 */}
+      <div className="w-full overflow-hidden rounded-[12px] bg-white shadow-[inset_0_0_0_1px_#eaeaea]">
+        <div className="hidden px-[16px] pt-[16px] md:block">
+          <div className="overflow-x-auto">
+            <div className="min-w-[1050px]">
+              <div className={`grid ${GRID} items-start overflow-clip rounded-[6px] shadow-[inset_0_0_0_1px_#eaeaea]`}>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Purchase ID</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Supplier</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Purchase Date</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Items</span></div>
+                <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Total Amount</span></div>
+                <div className={`${CELL} h-[40px] justify-center bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Payment Status</span></div>
+                <div className={`${CELL} h-[40px] justify-center bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Status</span></div>
+                <div className={`${CELL} h-[40px] justify-center bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Action</span></div>
+              </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-[320px]">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by Purchase ID or Supplier.."
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-amber-400 transition-colors"
-              />
-            </div>
-
-            {/* Filter Funnel Button */}
-            <button
-              type="button"
-              title="Filter purchases"
-              className="p-2 border border-gray-200 hover:border-gray-300 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
-            >
-              <Filter className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs font-semibold text-gray-500 bg-gray-50/50">
-                <th className="py-3.5 px-5 font-semibold">Purchase ID</th>
-                <th className="py-3.5 px-5 font-semibold">Supplier</th>
-                <th className="py-3.5 px-5 font-semibold">Purchase Date</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Items</th>
-                <th className="py-3.5 px-5 font-semibold">Total Amount</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Payment Status</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Status</th>
-                <th className="py-3.5 px-5 font-semibold text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 text-xs font-medium text-gray-700">
-              {purchases.map((item, idx) => (
-                <tr
-                  key={`${item.id}-${idx}`}
-                  className="hover:bg-gray-50/80 transition-colors"
-                >
-                  {/* Purchase ID */}
-                  <td className="py-4 px-5 text-gray-600 font-medium">
-                    {item.purchaseId}
-                  </td>
-
-                  {/* Supplier + Avatar */}
-                  <td className="py-4 px-5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-6 h-6 rounded-md bg-amber-100 relative shrink-0 overflow-hidden border border-gray-200">
-                        <Image
-                          src={item.supplier.avatar}
-                          alt={item.supplier.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <span className="font-semibold text-gray-900 truncate">
-                        {item.supplier.name}
+              <div className="mt-[6px]">
+                {rows.length === 0 && (
+                  <p className="py-[40px] text-center text-[14px] text-[#525252]">
+                    No purchases match that search or date.
+                  </p>
+                )}
+                {rows.map((r, i) => (
+                  // Not a <button>: the Action cell holds one, and buttons can't nest.
+                  <div
+                    key={r.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${r.purchaseId}`}
+                    onClick={() => setDetailOf(r)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailOf(r);
+                      }
+                    }}
+                    className={`grid ${GRID} h-[54px] cursor-pointer items-center transition-colors outline-none hover:bg-[#fafafa] focus-visible:bg-[#fffaeb] focus-visible:ring-1 focus-visible:ring-[#f5b800] focus-visible:ring-inset ${i === rows.length - 1 ? "" : "border-b border-solid border-[#eaeaea]"}`}
+                  >
+                    <div className={CELL}><span className={`${TEXT} truncate`}>{r.purchaseId}</span></div>
+                    {/* 28px avatar, 8px from the name — 59:15334 */}
+                    <div className={`${CELL} gap-[8px]`}>
+                      <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
+                        <Image src={r.supplier.avatar} alt="" fill sizes="28px" className="object-cover" />
                       </span>
+                      <span className={`${TEXT} truncate`}>{r.supplier.name}</span>
                     </div>
-                  </td>
-
-                  {/* Purchase Date */}
-                  <td className="py-4 px-5 text-gray-500">
-                    {item.purchaseDate}
-                  </td>
-
-                  {/* Items Count */}
-                  <td className="py-4 px-5 text-center font-bold text-gray-900">
-                    {item.itemsCount}
-                  </td>
-
-                  {/* Total Amount */}
-                  <td className="py-4 px-5 font-bold text-gray-900">
-                    {item.totalAmountFormatted}
-                  </td>
-
-                  {/* Payment Status Badge */}
-                  <td className="py-4 px-5 text-center">
-                    {item.paymentStatus === "Paid" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Due
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Status Badge */}
-                  <td className="py-4 px-5 text-center">
-                    {item.status === "Received" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Received
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        Pending
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Action 3 Dots */}
-                  <td className="py-4 px-5 text-center">
-                    <button
-                      type="button"
-                      title="More actions"
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer inline-flex items-center justify-center"
+                    <div className={CELL}><span className={`${TEXT} truncate`}>{r.purchaseDate}</span></div>
+                    <div className={CELL}><span className={`${TEXT} truncate`}>{r.itemsCount}</span></div>
+                    <div className={CELL}><span className={`${TEXT} truncate`}>{r.totalAmountFormatted}</span></div>
+                    <div className={`${CELL} justify-center`}>
+                      <StatusPill label={r.paymentStatus} tone={PAYMENT_TONE[r.paymentStatus] ?? "slate"} />
+                    </div>
+                    <div className={`${CELL} justify-center`}>
+                      <StatusPill label={r.status} tone={STATUS_TONE[r.status] ?? "slate"} />
+                    </div>
+                    {/* The menu lives inside the row hit area — keep its clicks to itself. */}
+                    <div
+                      className={`${CELL} justify-center`}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                     >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer / Pagination Controls */}
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-100 text-xs text-gray-500">
-          {/* Entries summary */}
-          <div className="flex items-center gap-4">
-            <span>Showing 1 to {Math.min(pageSize, purchases.length)} of 50 entries</span>
-
-            {/* Page Size Selector */}
-            <div className="relative inline-flex items-center">
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <span>Show {pageSize}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </button>
+                      <RowActionMenu
+                        label={`Actions for ${r.purchaseId}`}
+                        actions={[
+                          { label: "View purchase", onSelect: () => setDetailOf(r) },
+                          { label: "Print order", onSelect: () => setReceiptOf(r) },
+                          ...(r.status === "Received"
+                            ? []
+                            : [{ label: "Mark received", onSelect: () => setMarkOf({ row: r, kind: "received" as const }) }]),
+                          ...(r.paymentStatus === "Paid"
+                            ? []
+                            : [{ label: "Mark paid", onSelect: () => setMarkOf({ row: r, kind: "paid" as const }) }]),
+                        ]}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Page Numbers & Nav */}
-          <div className="flex items-center gap-1.5">
+        {/* Stacked cards below md — also tappable */}
+        <div className="flex flex-col gap-[10px] px-[16px] pt-[16px] md:hidden">
+          {rows.map((r) => (
             <button
+              key={r.id}
               type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              onClick={() => setDetailOf(r)}
+              aria-label={`Open ${r.purchaseId}`}
+              className="w-full cursor-pointer rounded-[10px] border border-solid border-[#eaeaea] p-[12px] text-left transition-colors outline-none hover:bg-[#fafafa] focus-visible:border-[#f5b800] focus-visible:bg-[#fffaeb]"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <div className="flex items-start justify-between gap-[10px]">
+                <div className="flex min-w-0 items-center gap-[8px]">
+                  <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
+                    <Image src={r.supplier.avatar} alt="" fill sizes="28px" className="object-cover" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className={`${TEXT} truncate !text-[#1e1e1e]`}>{r.supplier.name}</p>
+                    <p className="mt-[2px] truncate text-[12px] tracking-[-0.24px] text-[#525252]">
+                      {r.purchaseId}
+                    </p>
+                  </div>
+                </div>
+                <StatusPill label={r.status} tone={STATUS_TONE[r.status] ?? "slate"} />
+              </div>
+              <div className="mt-[10px] flex items-center justify-between gap-[10px]">
+                <span className="truncate text-[12px] tracking-[-0.24px] text-[#525252]">
+                  {r.purchaseDate} · {r.itemsCount} items
+                </span>
+                <span className={`${TEXT} shrink-0`}>{r.totalAmountFormatted}</span>
+              </div>
+              <div className="mt-[8px]">
+                <StatusPill label={r.paymentStatus} tone={PAYMENT_TONE[r.paymentStatus] ?? "slate"} />
+              </div>
             </button>
+          ))}
+        </div>
 
-            <button
-              type="button"
-              onClick={() => setCurrentPage(1)}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-xs bg-gray-50 text-gray-900 transition-colors cursor-pointer"
-            >
-              1
-            </button>
+        {note && <p className="px-[16px] pt-[10px] text-[13px] text-[#525252]">{note}</p>}
 
-            <button
-              type="button"
-              onClick={() => setCurrentPage(2)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              2
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(3)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              3
-            </button>
-
-            <span className="px-1 text-gray-400 font-bold">...</span>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage(10)}
-              className="w-8 h-8 rounded-xl border border-transparent flex items-center justify-center font-semibold text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors cursor-pointer"
-            >
-              10
-            </button>
-
-            <button
-              type="button"
-              disabled={currentPage === 10}
-              onClick={() => setCurrentPage((p) => Math.min(10, p + 1))}
-              className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Pagination — 59:15704 */}
+        <div className="mt-[9px]">
+          <TablePagination
+            page={current}
+            pageSize={pageSize}
+            total={visible.length}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
+
+      {/* View purchase */}
+      <Modal
+        open={detailOf !== null}
+        onClose={() => setDetailOf(null)}
+        title={`Purchase ${detailOf?.purchaseId ?? ""}`}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setDetailOf(null)}>
+              Close
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => {
+                setReceiptOf(detailOf);
+                setDetailOf(null);
+              }}
+            >
+              Print order
+            </button>
+          </>
+        }
+      >
+        {detailOf && (
+          <div className="flex flex-col gap-[16px]">
+            <div className="flex items-center gap-[12px]">
+              <span className="relative size-[48px] shrink-0 overflow-hidden rounded-[10px] border border-solid border-[#eaeaea]">
+                <Image src={detailOf.supplier.avatar} alt="" fill sizes="48px" className="object-cover" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[16px] font-medium text-[#1e1e1e]">{detailOf.supplier.name}</p>
+                <p className="truncate text-[13px] text-[#525252]">{detailOf.purchaseId}</p>
+              </div>
+            </div>
+            <dl className="flex flex-col gap-[12px]">
+              {[
+                ["Purchase Date", detailOf.purchaseDate],
+                ["Items", String(detailOf.itemsCount)],
+                ["Total Amount", detailOf.totalAmountFormatted],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between gap-[16px]">
+                  <dt className="text-[14px] text-[#525252]">{k}</dt>
+                  <dd className="text-[14px] font-medium text-[#1e1e1e]">{v}</dd>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-[16px]">
+                <dt className="text-[14px] text-[#525252]">Payment Status</dt>
+                <dd>
+                  <StatusPill label={detailOf.paymentStatus} tone={PAYMENT_TONE[detailOf.paymentStatus] ?? "slate"} />
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-[16px]">
+                <dt className="text-[14px] text-[#525252]">Status</dt>
+                <dd>
+                  <StatusPill label={detailOf.status} tone={STATUS_TONE[detailOf.status] ?? "slate"} />
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </Modal>
+
+      {/* Printable purchase order */}
+      <Modal
+        open={receiptOf !== null}
+        onClose={() => setReceiptOf(null)}
+        title="Purchase order"
+        width={420}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setReceiptOf(null)}>
+              Close
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => window.print()}
+            >
+              Print
+            </button>
+          </>
+        }
+      >
+        {receiptOf && (
+          <div className="print-area flex flex-col gap-[10px] text-[13px] text-[#525252]">
+            <p className="text-center text-[16px] font-semibold text-[#1e1e1e]">SORTPoint</p>
+            <p className="text-center text-[12px]">Purchase order</p>
+            <div className="my-[6px] h-px w-full bg-[#eaeaea]" />
+            <p className="flex justify-between"><span>Purchase</span><span className="font-medium text-[#1e1e1e]">{receiptOf.purchaseId}</span></p>
+            <p className="flex justify-between"><span>Supplier</span><span>{receiptOf.supplier.name}</span></p>
+            <p className="flex justify-between"><span>Date</span><span>{receiptOf.purchaseDate}</span></p>
+            <p className="flex justify-between"><span>Items</span><span>{receiptOf.itemsCount}</span></p>
+            <p className="flex justify-between"><span>Payment</span><span>{receiptOf.paymentStatus}</span></p>
+            <p className="flex justify-between"><span>Status</span><span>{receiptOf.status}</span></p>
+            <div className="my-[6px] h-px w-full bg-[#eaeaea]" />
+            <p className="flex justify-between text-[15px] font-semibold text-[#1e1e1e]">
+              <span>Total</span>
+              <span>{receiptOf.totalAmountFormatted}</span>
+            </p>
+            <p className="mt-[8px] text-center text-[12px]">Authorised signature ____________________</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Mark received / paid */}
+      <Modal
+        open={markOf !== null}
+        onClose={() => setMarkOf(null)}
+        title={markOf?.kind === "paid" ? "Mark as paid" : "Mark as received"}
+        width={440}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setMarkOf(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => {
+                if (!markOf) return;
+                // Optimistic: the mock backend has no update endpoint yet.
+                setPurchases((list) =>
+                  list.map((x) =>
+                    x.id === markOf.row.id
+                      ? markOf.kind === "paid"
+                        ? { ...x, paymentStatus: "Paid" as const }
+                        : { ...x, status: "Received" as const }
+                      : x
+                  )
+                );
+                setNote(
+                  markOf.kind === "paid"
+                    ? `${markOf.row.purchaseId} marked as paid`
+                    : `${markOf.row.purchaseId} marked as received`
+                );
+                setMarkOf(null);
+              }}
+            >
+              {markOf?.kind === "paid" ? "Confirm payment" : "Confirm receipt"}
+            </button>
+          </>
+        }
+      >
+        {markOf && (
+          <p className="text-[14px] leading-[1.6] text-[#525252]">
+            {markOf.kind === "paid" ? (
+              <>
+                Record <span className="font-medium text-[#1e1e1e]">{markOf.row.totalAmountFormatted}</span>{" "}
+                as paid to <span className="font-medium text-[#1e1e1e]">{markOf.row.supplier.name}</span> for{" "}
+                <span className="font-medium text-[#1e1e1e]">{markOf.row.purchaseId}</span>?
+              </>
+            ) : (
+              <>
+                Mark <span className="font-medium text-[#1e1e1e]">{markOf.row.purchaseId}</span> (
+                {markOf.row.itemsCount} items from{" "}
+                <span className="font-medium text-[#1e1e1e]">{markOf.row.supplier.name}</span>) as received?
+              </>
+            )}
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

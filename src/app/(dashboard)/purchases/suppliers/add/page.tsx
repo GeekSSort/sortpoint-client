@@ -1,143 +1,177 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CloudUpload, CheckCircle2 } from "lucide-react";
 import { SupplierService } from "@/services";
+import { GOLD_GRADIENT } from "@/components/shared/Modal";
+import UploadIcon from "@/components/shared/UploadIcon";
+
+/**
+ * Figma: SORTPoint — Add Suppliers 73:3279.
+ *
+ * A 565-wide centred column: the bordered card (48px "Add Supplier" head over a
+ * 533-wide field stack — three 56px inputs and the 88px upload dropzone) with
+ * the gold submit 24px below it, outside the card.
+ *
+ * The design's headline (title + subtitle) lives in the navbar here, like every
+ * other page, and its Buttons group is drawn at opacity 0 — nothing to render.
+ * Below sm the column simply goes full width; that part is mine.
+ */
+
+const LABEL = "w-full text-[18px] leading-[24px] font-medium text-[#525252]";
+const FIELD =
+  "flex h-[56px] w-full items-center rounded-[12px] bg-white px-[16px] py-[8px] shadow-[inset_0_0_0_1px_#eaeaea] transition-shadow focus-within:shadow-[inset_0_0_0_1px_#f5b800]";
+const INPUT =
+  "min-w-px flex-1 bg-transparent text-[16px] leading-[24px] font-normal text-[#525252] outline-none placeholder:text-[#525252]";
 
 export default function AddSupplierPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [mail, setMail] = useState("");
+  const [image, setImage] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // Form State
-  const [supplierName, setSupplierName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [emailAddress, setEmailAddress] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierName) return;
+    if (saving) return;
+    if (!name.trim()) return setError("Supplier name is required.");
+    if (!phone.trim()) return setError("Phone number is required.");
+    if (mail.trim() && !/^\S+@\S+\.\S+$/.test(mail.trim()))
+      return setError("That email address doesn’t look right.");
 
-    setIsSubmitting(true);
+    setSaving(true);
+    setError(null);
     try {
       await SupplierService.createSupplier({
-        name: supplierName,
-        phone: phoneNumber || "+880 1912 345 680",
-        mail: emailAddress || "info@abctraders.com",
+        name: name.trim(),
+        phone: phone.trim(),
+        mail: mail.trim() || "—",
         status: "Active",
       });
-
-      setSuccessMessage(true);
-      setTimeout(() => {
-        router.push("/purchases/suppliers");
-      }, 1400);
-    } catch (err) {
-      console.error("Failed to add supplier:", err);
-    } finally {
-      setIsSubmitting(false);
+      setNote(`${name.trim()} added. Returning to the supplier list…`);
+      window.setTimeout(() => router.push("/purchases/suppliers"), 900);
+    } catch {
+      setError("Could not save the supplier. Try again.");
+      setSaving(false);
     }
   };
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-12 select-none">
-      {/* Top Title & Subtitle */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-          Add Suppliers
-        </h2>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-          Add a new supplier and manage their business, contact, and payment information.
-        </p>
-      </div>
-
-      {/* Centered Form Container */}
-      <div className="mx-auto w-full max-w-[560px] flex flex-col gap-5 pt-2">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Card Form Box */}
-          <div className="bg-white rounded-2xl border border-gray-200/90 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
-            {/* Header */}
-            <div className="py-3 px-4 text-center border-b border-gray-100 bg-white">
-              <h3 className="text-xs sm:text-sm font-semibold text-gray-800">
-                Add Supplier
-              </h3>
-            </div>
-
-            {/* Form Fields with Exact Spacing */}
-            <div className="p-6 flex flex-col gap-4">
-              {/* 1. Supplier Name */}
-              <div>
-                <label className="text-xs font-bold text-gray-800 block mb-1.5">
-                  Supplier Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  placeholder="Enter supplier name"
-                  className="w-full border border-gray-200 focus:border-amber-400 rounded-xl px-4 py-2.5 text-xs text-gray-800 placeholder:text-gray-400 bg-white focus:outline-none transition-colors"
-                />
-              </div>
-
-              {/* 2. Phone Number */}
-              <div>
-                <label className="text-xs font-bold text-gray-800 block mb-1.5">
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Enter supplier phone number"
-                  className="w-full border border-gray-200 focus:border-amber-400 rounded-xl px-4 py-2.5 text-xs text-gray-800 placeholder:text-gray-400 bg-white focus:outline-none transition-colors"
-                />
-              </div>
-
-              {/* 3. Email Address */}
-              <div>
-                <label className="text-xs font-bold text-gray-800 block mb-1.5">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={emailAddress}
-                  onChange={(e) => setEmailAddress(e.target.value)}
-                  placeholder="Enter email address"
-                  className="w-full border border-gray-200 focus:border-amber-400 rounded-xl px-4 py-2.5 text-xs text-gray-800 placeholder:text-gray-400 bg-white focus:outline-none transition-colors"
-                />
-              </div>
-
-              {/* 4. Upload Image Box */}
-              <div>
-                <label className="w-full border border-gray-200 hover:border-gray-300 rounded-xl py-6 flex items-center justify-center gap-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50/70 transition-colors cursor-pointer">
-                  <input type="file" accept="image/*" className="hidden" />
-                  <CloudUpload className="w-5 h-5 text-gray-700" />
-                  <span>Upload Image</span>
-                </label>
-              </div>
-            </div>
+    <div className="flex w-full flex-col gap-[14px] select-none">
+      <form onSubmit={save} className="mx-auto flex w-full max-w-[565px] flex-col gap-[24px]">
+        {/* Card — 73:3853 */}
+        <div className="w-full overflow-hidden rounded-[10px] bg-white pb-[16px] shadow-[inset_0_0_0_1px_#eaeaea]">
+          {/* Head — 73:3854 */}
+          <div className="flex w-full items-center justify-center bg-white px-[16px] pt-[16px] pb-[8px] shadow-[inset_0_0_0_1px_#eaeaea]">
+            <p className="text-[16px] leading-[1.5] font-normal tracking-[-0.32px] whitespace-nowrap text-[#1e1e1e]">
+              Add Supplier
+            </p>
           </div>
 
-          {/* Success Alert */}
-          {successMessage && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-700 flex items-center justify-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Supplier added successfully! Redirecting to suppliers list...</span>
+          {/* Fields — 73:3857, 533 wide inside the 565 card */}
+          <div className="mx-auto mt-[9px] flex w-full max-w-[533px] flex-col gap-[12px] px-[16px] sm:px-0">
+            <div className="flex w-full flex-col gap-[8px]">
+              <label htmlFor="sup-name" className={LABEL}>Supplier Name</label>
+              <div className={FIELD}>
+                <input
+                  id="sup-name"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Enter supplier name"
+                  className={INPUT}
+                />
+              </div>
             </div>
-          )}
 
-          {/* Action Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 bg-[#F4B41A] hover:bg-[#E5A612] text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-xs text-center cursor-pointer disabled:opacity-60"
-          >
-            {isSubmitting ? "Adding Supplier..." : "Add Supplier"}
-          </button>
-        </form>
-      </div>
+            <div className="flex w-full flex-col gap-[8px]">
+              <label htmlFor="sup-phone" className={LABEL}>Phone Number</label>
+              <div className={FIELD}>
+                <input
+                  id="sup-phone"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Enter supplier phone number"
+                  className={INPUT}
+                />
+              </div>
+            </div>
+
+            <div className="flex w-full flex-col gap-[8px]">
+              <label htmlFor="sup-mail" className={LABEL}>Email Address</label>
+              <div className={FIELD}>
+                <input
+                  id="sup-mail"
+                  // Not type="email": the browser's own bubble would pre-empt
+                  // the inline message the rest of the app uses.
+                  inputMode="email"
+                  value={mail}
+                  onChange={(e) => {
+                    setMail(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Enter email address"
+                  className={INPUT}
+                />
+              </div>
+            </div>
+
+            {/* Upload — 73:3908, 88 tall here (Add Product's is 56) */}
+            <label className="flex h-[88px] w-full cursor-pointer items-center justify-center gap-[10px] rounded-[12px] bg-white px-[16px] py-[8px] shadow-[inset_0_0_0_1px_#eaeaea] transition-colors hover:bg-[#fafafa]">
+              {image ? (
+                <>
+                  <span className="relative size-[48px] shrink-0 overflow-hidden rounded-[8px]">
+                    <Image src={image} alt="" fill sizes="48px" className="object-cover" unoptimized />
+                  </span>
+                  <span className="text-[16px] leading-[24px] text-[#525252]">Image selected</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[#525252]">
+                    <UploadIcon />
+                  </span>
+                  <span className="w-[106px] text-center text-[16px] leading-[24px] text-[#525252]">
+                    Upload Image
+                  </span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                aria-label="Upload image"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setImage(URL.createObjectURL(file));
+                }}
+                className="hidden"
+              />
+            </label>
+
+            {error && <p className="text-[13px] text-[#ef4444]">{error}</p>}
+            {note && <p className="text-[13px] text-[#525252]">{note}</p>}
+          </div>
+        </div>
+
+        {/* Submit — 73:3905, outside the card */}
+        <button
+          type="submit"
+          disabled={saving}
+          style={{ backgroundImage: GOLD_GRADIENT }}
+          className="flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[12px] text-[16px] leading-[24px] font-semibold text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Add Supplier"}
+        </button>
+      </form>
     </div>
   );
 }
-
