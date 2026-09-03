@@ -15,3 +15,4 @@ export * from "./hrmService";
 export * from "./payrollService";
 export * from "./roleService";
 export * from "./settingsService";
+export * from "./notificationService";
