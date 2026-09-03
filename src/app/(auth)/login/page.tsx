@@ -111,7 +111,7 @@ export default function LoginPage() {
         {/* image 6 — 106x100, radius 24 */}
         <Image
           src="/auth/logo.png"
-          alt="ERPFLOW"
+          alt="SortPoint"
           width={106}
           height={100}
           priority
@@ -124,7 +124,7 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-[14px] leading-[1.5] font-normal tracking-[-0.28px] text-[#525252]">
-            Sign in to continue to your ERPFLOW workspace.
+            Sign in to continue to your SortPoint workspace.
           </p>
         </div>
 
