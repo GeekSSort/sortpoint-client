@@ -9,8 +9,11 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Sortorium - Enterprise ERP & Management",
-  description: "Enterprise level business management workspace",
+  // The tab text, and what a bookmark or a shared link is named.
+  title: "SortPoint",
+  description:
+    "Smart POS for retail — sell, track stock, manage purchases and customers across every branch.",
+  applicationName: "SortPoint",
 };
 
 export default function RootLayout({
