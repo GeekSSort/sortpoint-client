@@ -1,96 +1,119 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { ProfitLossData } from "@/types/dashboard";
+
+/**
+ * Figma: SORTPoint — Profit & Loss 30:16864.
+ *
+ * 383x332 card, 20px padding, a 42px header row and a 210px donut beside a
+ * 121px legend column. The ring is drawn from the data: revenue and expenses
+ * take their share of the circle, each split into three sub-arcs with gaps to
+ * keep the design's segmented look.
+ */
+
+const GREEN = "#22c55e";
+const RED = "#ef4444";
+const GOLD = "#f5b800";
+
+const SIZE = 210;
+const R_OUTER = 101;
+const R_INNER = 56;
+// The wedge is drawn inset by half the round stroke, then stroked back out —
+// that is what gives the segments the design's rounded ends.
+const ROUND = 8;
+const R_O = R_OUTER - ROUND / 2;
+const R_I = R_INNER + ROUND / 2;
+// The round stroke grows each wedge ~3deg at the mid radius, so the gap has to
+// budget for that on both sides to still read as a gap.
+const GAP_DEG = 11;
+const SUBS = 3; // sub-arcs per series
+
+/** Donut wedge with the given sweep, drawn clockwise from 12 o'clock. */
+function wedge(from: number, to: number): string {
+  const p = (deg: number, r: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return [SIZE / 2 + r * Math.cos(rad), SIZE / 2 + r * Math.sin(rad)];
+  };
+  const large = to - from > 180 ? 1 : 0;
+  const [x1, y1] = p(from, R_O);
+  const [x2, y2] = p(to, R_O);
+  const [x3, y3] = p(to, R_I);
+  const [x4, y4] = p(from, R_I);
+  return `M ${x1} ${y1} A ${R_O} ${R_O} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${R_I} ${R_I} 0 ${large} 0 ${x4} ${y4} Z`;
+}
+
+/** One series' share, chopped into SUBS arcs separated by GAP_DEG. */
+function segments(start: number, sweep: number): string[] {
+  const each = (sweep - GAP_DEG * SUBS) / SUBS;
+  if (each <= 0) return [wedge(start, start + Math.max(sweep - GAP_DEG, 0.1))];
+  return Array.from({ length: SUBS }, (_, i) => {
+    const a = start + i * (each + GAP_DEG);
+    return wedge(a, a + each);
+  });
+}
+
+function CaretIcon() {
+  return (
+    <svg className="block h-[4px] w-[8px] shrink-0 overflow-visible" viewBox="0 0 8 4" fill="none" aria-hidden>
+      <path
+        d="M0.5 0.5L4 3.5L7.5 0.5"
+        stroke="currentColor"
+        strokeWidth="1.33"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const RANGES = ["Today", "This Week", "This Month", "This Year"] as const;
 
 interface ProfitLossChartProps {
   data: ProfitLossData;
 }
 
-function createDonutArc(
-  cx: number,
-  cy: number,
-  rOuter: number,
-  rInner: number,
-  startAngleDeg: number,
-  endAngleDeg: number
-) {
-  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
-  const sRad = rad(startAngleDeg);
-  const eRad = rad(endAngleDeg);
-
-  const x1 = cx + rOuter * Math.cos(sRad);
-  const y1 = cy + rOuter * Math.sin(sRad);
-  const x2 = cx + rOuter * Math.cos(eRad);
-  const y2 = cy + rOuter * Math.sin(eRad);
-
-  const x3 = cx + rInner * Math.cos(eRad);
-  const y3 = cy + rInner * Math.sin(eRad);
-  const x4 = cx + rInner * Math.cos(sRad);
-  const y4 = cy + rInner * Math.sin(sRad);
-
-  const largeArc = endAngleDeg - startAngleDeg > 180 ? 1 : 0;
-
-  return `M ${x1} ${y1} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2} ${y2} L ${x3} ${y3} A ${rInner} ${rInner} 0 ${largeArc} 0 ${x4} ${y4} Z`;
-}
-
 export default function ProfitLossChart({ data }: ProfitLossChartProps) {
-  const [timeRange, setTimeRange] = useState("This Week");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [range, setRange] = useState<string>("This Week");
+  const [open, setOpen] = useState(false);
 
-  const ranges = ["Today", "This Week", "This Month", "This Year"];
-
-  // 6 Segment Definitions with gaps and exact angles matching screenshot
-  const slices = [
-    // Top-Left Green
-    { start: 298, end: 354, color: "#22C55E" },
-    // Top-Right Large Green
-    { start: 1, end: 94, color: "#22C55E" },
-    // Bottom-Right Green
-    { start: 101, end: 148, color: "#22C55E" },
-    // Bottom Red
-    { start: 155, end: 202, color: "#EF4444" },
-    // Bottom-Left Red
-    { start: 209, end: 247, color: "#EF4444" },
-    // Left Red
-    { start: 253, end: 291, color: "#EF4444" },
-  ];
+  const total = Math.max(1, data.totalRevenue + data.totalExpenses);
+  const revenueSweep = (data.totalRevenue / total) * 360;
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100/80 shadow-[0_4px_25px_rgba(0,0,0,0.02)] flex flex-col justify-between h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-bold text-gray-900">
-          Profit & Loss
-        </h2>
+    <div className="flex h-full flex-col items-center justify-center gap-[16px] rounded-[12px] bg-white p-[20px] shadow-[inset_0_0_0_1px_#eaeaea]">
+      {/* Header — 30:16865 */}
+      <div className="flex h-[42px] w-full shrink-0 items-center justify-between">
+        <p className="text-[20px] leading-[1.5] font-medium tracking-[-0.4px] whitespace-nowrap text-[#1e1e1e]">
+          Profit &amp; Loss
+        </p>
 
-        {/* Timeframe Dropdown */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={() => setOpen((v) => !v)}
+            onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+            aria-expanded={open}
+            className="flex h-[40px] cursor-pointer items-center justify-center gap-[8px] rounded-[11px] border border-solid border-[#eaeaea] bg-white px-[18px] text-[14px] font-medium tracking-[-0.28px] text-[#525252] transition-colors hover:bg-[#fafafa]"
           >
-            <span>{timeRange}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            <span className="whitespace-nowrap">{range}</span>
+            <CaretIcon />
           </button>
-
-          {isDropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-32 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-20">
-              {ranges.map((range) => (
+          {open && (
+            <div className="absolute top-[46px] right-0 z-30 w-[140px] overflow-hidden rounded-[10px] bg-white py-[4px] shadow-[0_8px_30px_rgba(0,0,0,0.10)] ring-1 ring-[#eaeaea]">
+              {RANGES.map((r) => (
                 <button
-                  key={range}
+                  key={r}
                   type="button"
                   onClick={() => {
-                    setTimeRange(range);
-                    setIsDropdownOpen(false);
+                    setRange(r);
+                    setOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-amber-50 hover:text-[#F4B41A] transition-colors ${
-                    timeRange === range ? "font-semibold text-[#F4B41A]" : "text-gray-700"
+                  className={`block w-full cursor-pointer px-[14px] py-[8px] text-left text-[13px] transition-colors hover:bg-[#fafafa] ${
+                    r === range ? "font-medium text-[#f5b800]" : "text-[#525252]"
                   }`}
                 >
-                  {range}
+                  {r}
                 </button>
               ))}
             </div>
@@ -98,67 +121,54 @@ export default function ProfitLossChart({ data }: ProfitLossChartProps) {
         </div>
       </div>
 
-      {/* Main Content: Segmented Donut + Stats */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-5 my-auto">
-        {/* Rounded Segment Donut Chart */}
-        <div className="relative w-[160px] h-[160px] flex items-center justify-center shrink-0">
-          <svg className="w-full h-full" viewBox="0 0 200 200">
-            {slices.map((slice, index) => (
-              <path
-                key={index}
-                d={createDonutArc(100, 100, 80, 48, slice.start, slice.end)}
-                fill={slice.color}
-                stroke={slice.color}
-                strokeWidth={7}
-                strokeLinejoin="round"
-                className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-              />
+      {/* Body — 30:16874. Stacks below sm, side by side from sm up. */}
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-[12px] sm:flex-row">
+        <div className="relative size-[210px] max-w-full shrink-0">
+          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="block size-full" role="img" aria-label="Revenue versus expenses">
+            {segments(0, revenueSweep).map((d, i) => (
+              <path key={`rev-${i}`} d={d} fill={GREEN} stroke={GREEN} strokeWidth={ROUND} strokeLinejoin="round" />
+            ))}
+            {segments(revenueSweep, 360 - revenueSweep).map((d, i) => (
+              <path key={`exp-${i}`} d={d} fill={RED} stroke={RED} strokeWidth={ROUND} strokeLinejoin="round" />
             ))}
           </svg>
-
-          {/* Center Text (Golden / Amber) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none">
-            <span className="text-sm sm:text-base font-extrabold text-[#F4B41A] leading-tight">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center text-[#f5b800]">
+            <span className="text-[18px] leading-[1.2] font-medium tracking-[-0.32px]">
               {data.profitMargin}%
             </span>
-            <span className="text-[10px] text-[#F4B41A] font-medium mt-0.5">
-              Profit Margin
-            </span>
+            <span className="text-[14px] leading-[1.2] font-normal tracking-[-0.32px]">Profit Margin</span>
           </div>
         </div>
 
-        {/* Legend & Stats Column */}
-        <div className="flex-1 w-full flex flex-col gap-3 min-w-[125px]">
-          {/* Total Revenue */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
-              <span>Total Revenue</span>
+        <div className="flex w-[121px] shrink-0 flex-col justify-center gap-[27px]">
+          <div className="flex w-full flex-col gap-[12px]">
+            <div className="flex w-full items-center gap-[6px]">
+              <span className="size-[6px] shrink-0 rounded-full" style={{ backgroundColor: GREEN }} />
+              <span className="flex flex-col text-[16px] leading-[1.5] font-medium tracking-[-0.32px] whitespace-nowrap text-[#525252]">
+                <span>Total Revenue</span>
+                <span>{data.revenueFormatted}</span>
+              </span>
             </div>
-            <span className="text-sm font-bold text-gray-900 pl-3">
-              {data.revenueFormatted}
-            </span>
+            <div className="flex w-full items-center gap-[6px]">
+              <span className="size-[6px] shrink-0 rounded-full" style={{ backgroundColor: RED }} />
+              <span className="flex flex-col text-[16px] leading-[1.5] font-medium tracking-[-0.32px] whitespace-nowrap text-[#525252]">
+                <span>Total Expenses</span>
+                <span>{data.expensesFormatted}</span>
+              </span>
+            </div>
           </div>
 
-          {/* Total Expenses */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
-              <span>Total Expenses</span>
-            </div>
-            <span className="text-sm font-bold text-gray-900 pl-3">
-              {data.expensesFormatted}
+          <div
+            className="flex w-[121px] items-center justify-center rounded-[15px] px-[12px] py-[8px] text-center"
+            style={{ backgroundColor: "rgba(245,184,0,0.1)" }}
+          >
+            <span
+              className="flex flex-col text-[16px] leading-[1.5] font-medium tracking-[-0.32px] whitespace-nowrap"
+              style={{ color: GOLD }}
+            >
+              <span>Net Profit</span>
+              <span>{data.netProfitFormatted}</span>
             </span>
-          </div>
-
-          {/* Net Profit Beige/Cream Box */}
-          <div className="bg-[#FEF9EE] rounded-2xl p-3 text-center mt-1">
-            <div className="text-xs font-bold text-[#F4B41A]">
-              Net Profit
-            </div>
-            <div className="text-sm sm:text-base font-extrabold text-[#F4B41A] mt-0.5">
-              {data.netProfitFormatted}
-            </div>
           </div>
         </div>
       </div>

@@ -1,211 +1,85 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import { OverviewService } from "@/services";
 import { CustomerListItem } from "@/types/overview";
+import StatusPill, { Tone } from "@/components/shared/StatusPill";
+import OverviewPanel, { PANEL_CELL, PANEL_HEAD, PANEL_TEXT } from "./OverviewPanel";
 
-interface CustomerListModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+/** The TOTAL CUSTOMERS card's panel — who is behind the count. */
 
-export default function CustomerListModal({ isOpen, onClose }: CustomerListModalProps) {
+const GRID = "grid-cols-[130fr_160fr_150fr_100fr_80fr_130fr_120fr_110fr]";
+const FILTERS = ["All customers", "Active", "Inactive"] as const;
+const TYPE_TONE: Record<CustomerListItem["type"], Tone> = {
+  VIP: "gold",
+  Premium: "orange",
+  Regular: "slate",
+};
+const taka = (n: number) => `৳ ${n.toLocaleString("en-IN")}`;
+
+export default function CustomerListModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
-  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Inactive">("All");
 
   useEffect(() => {
-    OverviewService.getCustomers().then((data) => {
-      setCustomers(data);
-    });
+    OverviewService.getCustomers()
+      .then(setCustomers)
+      .catch(() => {});
   }, []);
 
-  if (!isOpen) return null;
-
-  const filteredData = customers.filter((item) => {
-    const matchesSearch =
-      item.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.customerId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.type.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "All" || item.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const stats = useMemo(() => {
+    const due = customers.reduce((s, c) => s + c.due, 0);
+    return [
+      { label: "Customers", value: String(customers.length) },
+      { label: "Lifetime spend", value: taka(customers.reduce((s, c) => s + c.totalSpent, 0)) },
+      { label: "Outstanding due", value: taka(due) },
+    ];
+  }, [customers]);
 
   return (
-    <div className="absolute inset-y-0 right-0 left-auto w-[68%] min-w-[680px] z-20 flex flex-col pointer-events-auto">
-      <div 
-        className="w-full bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-200/90 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-right-6 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header Bar */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4 bg-white">
-          <h3 className="text-sm sm:text-base font-bold text-gray-900 shrink-0">
-            Customer List
-          </h3>
-
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className="relative flex items-center">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by return ID, Invoice No. or Customer..."
-                className="w-[260px] sm:w-[320px] pl-9 pr-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-              />
-            </div>
-
-            {/* Filter Funnel Button */}
-            <button
-              type="button"
-              onClick={() => setFilterStatus(filterStatus === "All" ? "Active" : filterStatus === "Active" ? "Inactive" : "All")}
-              title={`Filter status: ${filterStatus}`}
-              className="p-1.5 rounded-lg border border-gray-200 hover:border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-            </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+    <OverviewPanel<CustomerListItem>
+      open={isOpen}
+      onClose={onClose}
+      title="Customer List"
+      subtitle="The people behind your customer count."
+      searchPlaceholder="Search by customer, ID or phone..."
+      rows={customers}
+      searchable={(r) => `${r.customer} ${r.customerId} ${r.phone}`}
+      filters={FILTERS}
+      matchesFilter={(r, f) => r.status === f}
+      stats={stats}
+      grid={GRID}
+      minWidth={900}
+      emptyText="No customers match that search."
+      head={
+        <>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Customer ID</span></div>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Customer</span></div>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Phone</span></div>
+          <div className={`${PANEL_CELL} h-[40px] justify-center`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Type</span></div>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Order</span></div>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Total Spent</span></div>
+          <div className={`${PANEL_CELL} h-[40px]`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Due</span></div>
+          <div className={`${PANEL_CELL} h-[40px] justify-center`}><span className={`${PANEL_HEAD} whitespace-nowrap`}>Status</span></div>
+        </>
+      }
+      renderRow={(r) => (
+        <>
+          <div className={PANEL_CELL}><span className={`${PANEL_TEXT} truncate !text-[#1e1e1e]`}>{r.customerId}</span></div>
+          <div className={PANEL_CELL}><span className={`${PANEL_TEXT} truncate`}>{r.customer}</span></div>
+          <div className={PANEL_CELL}><span className={`${PANEL_TEXT} truncate`}>{r.phone}</span></div>
+          <div className={`${PANEL_CELL} justify-center`}>
+            <StatusPill label={r.type} tone={TYPE_TONE[r.type] ?? "slate"} />
           </div>
-        </div>
-
-        {/* Table Content */}
-        <div className="overflow-x-auto overflow-y-auto flex-1">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-gray-100 text-gray-700 font-semibold bg-white sticky top-0 z-10">
-                <th className="py-3 px-6">Customer ID</th>
-                <th className="py-3 px-6">Customer</th>
-                <th className="py-3 px-6">Phone</th>
-                <th className="py-3 px-6">Type</th>
-                <th className="py-3 px-6">Order</th>
-                <th className="py-3 px-6">Total Spent</th>
-                <th className="py-3 px-6">Due</th>
-                <th className="py-3 px-6 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 font-normal text-gray-700">
-              {filteredData.slice(0, pageSize).map((item) => (
-                <tr key={item.id} className="hover:bg-amber-50/20 transition-colors">
-                  <td className="py-3.5 px-6 text-gray-900 font-medium">
-                    {item.customerId}
-                  </td>
-                  <td className="py-3.5 px-6 text-gray-900 font-medium">
-                    {item.customer}
-                  </td>
-                  <td className="py-3.5 px-6 text-gray-600">
-                    {item.phone}
-                  </td>
-                  <td className="py-3.5 px-6 text-gray-700">
-                    {item.type}
-                  </td>
-                  <td className="py-3.5 px-6 text-gray-900 font-semibold">
-                    {item.order}
-                  </td>
-                  <td className="py-3.5 px-6 font-bold text-gray-900">
-                    {item.totalSpentFormatted}
-                  </td>
-                  <td className="py-3.5 px-6 font-bold text-gray-900">
-                    {item.dueFormatted}
-                  </td>
-                  <td className="py-3.5 px-6 text-center">
-                    {item.status === "Active" ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-200/60">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-600 border border-orange-200/60">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer & Pagination */}
-        <div className="py-3.5 px-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 select-none bg-white">
-          <div className="text-xs text-gray-500">
-            Showing 1 to {Math.min(pageSize, filteredData.length)} of 50 entries
+          <div className={PANEL_CELL}><span className={`${PANEL_TEXT} truncate`}>{r.order}</span></div>
+          <div className={PANEL_CELL}><span className={`${PANEL_TEXT} truncate !text-[#1e1e1e]`}>{r.totalSpentFormatted}</span></div>
+          <div className={PANEL_CELL}>
+            <span className={`${PANEL_TEXT} truncate ${r.due > 0 ? "!text-[#e63946]" : ""}`}>{r.dueFormatted}</span>
           </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
-              className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <span>Show {pageSize}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-
-            {isPageSizeOpen && (
-              <div className="absolute bottom-full mb-1 left-0 w-24 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-30">
-                {[8, 15, 25, 50].map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setPageSize(size);
-                      setIsPageSizeOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-1 text-xs hover:bg-amber-50 hover:text-[#F4B41A]"
-                  >
-                    Show {size}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className={`${PANEL_CELL} justify-center`}>
+            <StatusPill label={r.status} tone={r.status === "Active" ? "green" : "rose"} />
           </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold border border-gray-200 bg-gray-50 text-gray-900">
-              1
-            </button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-              2
-            </button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-              3
-            </button>
-            <span className="px-1 text-gray-400 text-xs">...</span>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50">
-              10
-            </button>
-            <button
-              type="button"
-              className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    />
   );
 }

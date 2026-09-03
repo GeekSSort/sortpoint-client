@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Calendar } from "lucide-react";
+import Headline from "@/components/modules/dashboard/Headline";
 import MetricCards from "@/components/modules/dashboard/MetricCards";
 import SalesSummaryChart from "@/components/modules/dashboard/SalesSummaryChart";
 import ProfitLossChart from "@/components/modules/dashboard/ProfitLossChart";
@@ -9,14 +9,17 @@ import RecentActivitiesTable from "@/components/modules/dashboard/RecentActiviti
 import SalesOverviewModal from "@/components/modules/dashboard/SalesOverviewModal";
 import OrderListModal from "@/components/modules/dashboard/OrderListModal";
 import CustomerListModal from "@/components/modules/dashboard/CustomerListModal";
+import RevenueOverviewModal from "@/components/modules/dashboard/RevenueOverviewModal";
 import { DashboardService, initialDashboardData } from "@/services";
 import { DashboardResponse } from "@/types/dashboard";
 import { OverviewModalType } from "@/types/overview";
+import { matchesDay } from "@/lib/dateFilter";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponse>(initialDashboardData);
   const [loading, setLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<OverviewModalType>(null);
+  const [day, setDay] = useState<Date | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -34,7 +37,10 @@ export default function DashboardPage() {
   }, []);
 
   const handleMetricCardClick = (cardId: string) => {
-    if (cardId === "sales" || cardId === "revenue") {
+    if (cardId === "revenue") {
+      // Revenue used to open the Sales panel; it has its own breakdown now.
+      setActiveModal(activeModal === "revenue" ? null : "revenue");
+    } else if (cardId === "sales") {
       setActiveModal(activeModal === "sales" ? null : "sales");
     } else if (cardId === "orders") {
       setActiveModal(activeModal === "orders" ? null : "orders");
@@ -44,59 +50,41 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="w-full space-y-5 pb-6">
-      {/* Top Banner / Welcome Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-1.5">
-            Welcome, {data.user.name}
-            <span className="text-xl inline-block animate-pulse">👋</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Here&apos;s what&apos;s happening with your business today.
-          </p>
-        </div>
-
-        {/* Date Selector Badge */}
-        <div className="self-start sm:self-auto">
-          <button
-            type="button"
-            className="flex items-center gap-2.5 px-4 py-2 bg-[#F4B41A] hover:bg-[#E5A612] text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <span>24 August 2026</span>
-            <Calendar className="w-4 h-4" />
-          </button>
-        </div>
+    <div className="flex w-full flex-col gap-[24px]">
+      {/* Headline + KPI row travel together, 14px apart (Figma 30:15371). */}
+      <div className="flex flex-col gap-[14px]">
+        <Headline name={data.user.name} onDateChange={setDay} />
+        <MetricCards metrics={data.metrics} onCardClick={handleMetricCardClick} />
       </div>
-
-      {/* 4 Metric Statistics Cards (Never overlapped) */}
-      <MetricCards 
-        metrics={data.metrics} 
-        onCardClick={handleMetricCardClick} 
-      />
 
       {/* Lower Dashboard Section: Anchor for Docked Panels aligned with Sales Summary */}
       <div className="relative w-full">
         {/* Background Content (Charts + Recent Activities) */}
-        <div className={`space-y-5 transition-all duration-300 ${activeModal ? "opacity-30 blur-[0.2px] select-none pointer-events-none" : "opacity-100"}`}>
+        <div className={`flex flex-col gap-[24px] transition-all duration-300 ${activeModal ? "opacity-30 blur-[0.2px] select-none pointer-events-none" : "opacity-100"}`}>
           {/* Charts Grid Row (Sales Summary + Profit & Loss) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 gap-[20px] lg:grid-cols-[757fr_383fr]">
             {/* Sales Summary Line Chart (approx 63% width) */}
-            <div className="lg:col-span-7 xl:col-span-8">
+            <div className="min-w-0">
               <SalesSummaryChart data={data.salesSummary} />
             </div>
 
             {/* Profit & Loss Donut Chart (approx 37% width) */}
-            <div className="lg:col-span-5 xl:col-span-4">
+            <div className="min-w-0">
               <ProfitLossChart data={data.profitLoss} />
             </div>
           </div>
 
           {/* Recent Activities Data Table */}
-          <RecentActivitiesTable activities={data.recentActivities} />
+          <RecentActivitiesTable activities={data.recentActivities.filter((a) => matchesDay(a.dateTime, day))} />
         </div>
 
         {/* Docked Slide-over Panels: Anchored strictly within the lower section aligned with Sales Summary */}
+        <RevenueOverviewModal
+          isOpen={activeModal === "revenue"}
+          onClose={() => setActiveModal(null)}
+          data={data.salesSummary}
+        />
+
         <SalesOverviewModal
           isOpen={activeModal === "sales"}
           onClose={() => setActiveModal(null)}
