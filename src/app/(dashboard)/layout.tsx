@@ -16,12 +16,11 @@ export default function DashboardLayout({
 
         {/* Main Content Area filling whole width when minimized */}
         <div className="flex flex-1 flex-col overflow-y-auto min-w-0 bg-[#F8F9FA] transition-all duration-300">
-          <div className="w-full px-5 py-4 flex flex-col gap-5">
-            <Header />
-            <main className="w-full">
-              {children}
-            </main>
-          </div>
+          {/* Full-bleed: the navbar owns its own 24px gutters (Figma 30:15360). */}
+          <Header />
+          <main className="w-full flex flex-col p-[16px] gap-[24px] sm:p-[24px]">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>

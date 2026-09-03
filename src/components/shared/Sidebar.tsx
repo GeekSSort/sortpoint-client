@@ -4,225 +4,279 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+
 import { useSidebar } from "./SidebarContext";
-import MaskIcon from "../ui/MaskIcon";
+import {
+  CaretIcon,
+  CustomersIcon,
+  DashboardIcon,
+  HrmIcon,
+  InventoryIcon,
+  LogOutIcon,
+  PurchasesIcon,
+  RolesIcon,
+  SalesPosIcon,
+  SettingsIcon,
+} from "./SidebarIcons";
 
 /**
- * Figma: SORTPoint / node 59:17268 (sidebar), with the expanded submenu from
- * the design system's node 77:20880.
+ * Figma: SORTPoint — sidebar 20:7588 (default) and 31:17154 (section open).
+ *
+ * 240px rail = 16px padding + a 208px column. Rows are 37px (px-10 py-8) and
+ * the active row is 41px (p-10) on white; an open section turns the row into a
+ * #f5b800 card holding a 154px sub-menu column.
  */
-interface SubItem {
-  name: string;
-  href: string;
-  match?: (pathname: string) => boolean;
-}
 
-interface NavItem {
+type SubItem = { name: string; href: string; match: (p: string) => boolean };
+
+type NavItem = {
   name: string;
   href: string;
-  icon: string;
-  /** inset of the glyph inside its 20x20 frame, straight from Figma */
-  inset: string;
+  icon: React.ComponentType;
+  match: (p: string) => boolean;
   children?: SubItem[];
-}
+};
 
-const navItems: NavItem[] = [
+const NAV: NavItem[] = [
   {
     name: "Dashboard",
     href: "/dashboard",
-    icon: "/icons/sidebar/dashboard.svg",
-    inset: "8.33%",
+    icon: DashboardIcon,
+    match: (p) => p === "/" || p === "/dashboard",
   },
   {
     name: "Sales & POS",
     href: "/sales-pos",
-    icon: "/icons/sidebar/sales-pos.svg",
-    inset: "8.33% 16.04% 8.33% 16.67%",
+    icon: SalesPosIcon,
+    match: (p) => p.startsWith("/sales-pos"),
     children: [
       {
         name: "POS",
         href: "/sales-pos",
         match: (p) => p === "/sales-pos" || p === "/sales-pos/pos",
       },
-      { name: "Sales", href: "/sales-pos/sales" },
-      { name: "Return", href: "/sales-pos/return" },
+      { name: "Sales", href: "/sales-pos/sales", match: (p) => p.startsWith("/sales-pos/sales") },
+      { name: "Return", href: "/sales-pos/return", match: (p) => p.startsWith("/sales-pos/return") },
     ],
   },
   {
     name: "Customers",
     href: "/customers",
-    icon: "/icons/sidebar/customers.svg",
-    inset: "8.33% 12.3% 8.33% 8.33%",
+    icon: CustomersIcon,
+    match: (p) => p.startsWith("/customers"),
   },
   {
     name: "Inventory",
     href: "/inventory",
-    icon: "/icons/sidebar/inventory.svg",
-    inset: "6.25% 7.33% 10.42% 6.25%",
+    icon: InventoryIcon,
+    match: (p) => p.startsWith("/inventory"),
     children: [
       {
         name: "Product",
         href: "/inventory",
-        match: (p) =>
-          !p.startsWith("/inventory/stock") && !p.startsWith("/inventory/transfers"),
+        match: (p) => p === "/inventory" || p.startsWith("/inventory/add") || p.startsWith("/inventory/products"),
       },
-      { name: "Stock", href: "/inventory/stock" },
-      { name: "Transfers", href: "/inventory/transfers" },
+      { name: "Stock", href: "/inventory/stock", match: (p) => p.startsWith("/inventory/stock") },
+      {
+        name: "Transfers",
+        href: "/inventory/transfers",
+        match: (p) => p.startsWith("/inventory/transfers"),
+      },
     ],
   },
   {
     name: "Purchases",
     href: "/purchases",
-    icon: "/icons/sidebar/purchases.svg",
-    inset: "12.5% 8.33% 12.37% 8.33%",
+    icon: PurchasesIcon,
+    match: (p) => p.startsWith("/purchases"),
     children: [
       {
         name: "Purchase History",
         href: "/purchases",
-        match: (p) => !p.startsWith("/purchases/suppliers"),
+        match: (p) => p === "/purchases" || p.startsWith("/purchases/history"),
       },
-      { name: "Suppliers", href: "/purchases/suppliers" },
+      {
+        name: "Suppliers",
+        href: "/purchases/suppliers",
+        match: (p) => p.startsWith("/purchases/suppliers"),
+      },
     ],
   },
-  {
-    name: "HRM",
-    href: "/hrm",
-    icon: "/icons/sidebar/hrm.svg",
-    inset: "8.33% 8.33% 10.11% 8.33%",
-  },
+  { name: "HRM", href: "/hrm", icon: HrmIcon, match: (p) => p.startsWith("/hrm") },
   {
     name: "Roles & Permissions",
     href: "/roles-permissions",
-    icon: "/icons/sidebar/roles.svg",
-    inset: "12.5%",
+    icon: RolesIcon,
+    match: (p) => p.startsWith("/roles-permissions"),
   },
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: "/icons/sidebar/settings.svg",
-    inset: "8.33% 8.35% 8.33% 12.5%",
-  },
+  { name: "Settings", href: "/settings", icon: SettingsIcon, match: (p) => p.startsWith("/settings") },
 ];
-
-const isRouteActive = (pathname: string, href: string) =>
-  pathname === href || pathname.startsWith(`${href}/`);
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, setIsCollapsed } = useSidebar();
 
-  const [openMenu, setOpenMenu] = useState<string | null>(
-    () => navItems.find((i) => i.children && isRouteActive(pathname, i.href))?.name ?? null
+  // A section starts open when the route is inside it; clicking the row toggles.
+  const [openSection, setOpenSection] = useState<string | null>(
+    () => NAV.find((i) => i.children && i.match(pathname))?.name ?? null
   );
 
   return (
-    <aside
-      className={`flex shrink-0 items-center justify-center overflow-hidden bg-surface transition-all duration-300 ease-in-out select-none z-40 ${
-        isCollapsed
-          ? "w-0 -translate-x-full p-0 opacity-0 pointer-events-none"
-          : "h-screen w-[240px] translate-x-0 px-[16px] py-[20px] opacity-100"
-      }`}
-    >
-      <div className="flex h-full w-[208px] flex-col items-start justify-between">
-        {/* Logo + navigation */}
-        <div className="flex w-full flex-col items-center justify-center gap-[32px]">
+    <>
+      {/* Drawer scrim — only below lg, where the rail overlays the page. */}
+      <div
+        onClick={() => setIsCollapsed(true)}
+        aria-hidden
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 lg:hidden ${
+          isCollapsed ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      />
+      {/* Drawer below lg, in-flow rail from lg up. The lg: utilities win over the
+          collapsed state, so the rail is always open on desktop and always shut
+          on first paint below it — no media query in JS, so no hydration flash. */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-[240px] shrink-0 overflow-hidden bg-[#eaeaea] px-[16px] py-[20px] transition-transform duration-300 ease-in-out select-none lg:static lg:z-40 lg:translate-x-0 ${
+          isCollapsed ? "-translate-x-full" : "translate-x-0"
+        }`}
+      >
+      <div className="flex h-full w-[208px] flex-col justify-between">
+        {/* Top: logo + menu, 32px apart */}
+        <div className="flex w-full flex-col items-center gap-[32px]">
           <Link href="/dashboard" className="block h-[54px] w-[208px] shrink-0">
             <Image
-              src="/sidebar_logo.png"
-              alt="SORTPoint — Smart POS, Simple Business"
+              src="/sidebar/logo.png"
+              alt="SORTPoint — Smart POS · Simply Business"
               width={208}
               height={54}
-              className="h-[54px] w-[208px] object-contain"
               priority
+              className="h-[54px] w-[208px] object-contain"
             />
           </Link>
 
-          <nav className="flex w-full flex-col gap-[8px]">
-            {navItems.map((item) => {
-              const active = isRouteActive(pathname, item.href);
-              const isOpen = openMenu === item.name;
+          <nav className="flex w-[208px] flex-col gap-[8px]">
+            {NAV.map((item) => {
+              const Icon = item.icon;
+              const active = item.match(pathname);
 
-              const expanded = !!item.children && isOpen;
-
-              // Expanded parents become the brand card from node 77:20880:
-              // header plus its sub-items, all inside one gold panel.
-              if (expanded) {
+              // Section row (20:7600 closed / 31:17169 open). One element for
+              // both states so the colour, caret and sub-menu can transition
+              // instead of swapping: 0fr -> 1fr grows to the sub-menu's natural
+              // height without measuring it.
+              if (item.children) {
+                const isOpen = openSection === item.name;
                 return (
                   <div
                     key={item.name}
-                    className="flex w-full items-start gap-[14px] rounded-[6px] bg-brand px-[14px] py-[8px]"
+                    className={`w-[208px] rounded-[6px] px-[10px] py-[8px] transition-colors duration-300 ease-out ${
+                      isOpen ? "bg-[#f5b800]" : "bg-transparent hover:bg-white/40"
+                    }`}
                   >
-                    <span className="relative mt-[0.5px] size-[20px] shrink-0 overflow-hidden text-white">
-                      <MaskIcon src={item.icon} inset={item.inset} />
-                    </span>
-                    <div className="flex flex-1 flex-col items-start gap-[4px]">
-                      <button
-                        type="button"
-                        onClick={() => setOpenMenu(null)}
-                        className="flex h-[21px] cursor-pointer items-center gap-[8px]"
+                    <div className="flex gap-[14px]">
+                      <span
+                        className={`flex h-[21px] shrink-0 transition-colors duration-300 ease-out ${
+                          isOpen ? "items-start text-white" : "items-center text-[#525252]"
+                        }`}
                       >
-                        <span className="text-14 font-semibold whitespace-nowrap text-white">
-                          {item.name}
-                        </span>
-                        <span
-                          aria-hidden
-                          className="relative block h-[4px] w-[8px] shrink-0 -scale-y-100 text-white"
+                        <Icon />
+                      </span>
+
+                      <div className="flex w-[154px] flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setOpenSection(isOpen ? null : item.name)}
+                          aria-expanded={isOpen}
+                          className="flex h-[21px] w-full cursor-pointer items-center gap-[8px]"
                         >
-                          <MaskIcon src="/icons/sidebar/chevron.svg" inset="-16.67% -8.33%" />
-                        </span>
-                      </button>
-                      {item.children!.map((sub) => {
-                        const subActive = sub.match
-                          ? active && sub.match(pathname)
-                          : isRouteActive(pathname, sub.href);
-                        return (
-                          <Link
-                            key={sub.name}
-                            href={sub.href}
-                            // Fixed height so the bordered variants match the
-                            // filled one — Figma strokes are inside-aligned.
-                            className={`flex h-[26px] w-full items-center rounded-[5px] px-[12px] text-12 leading-[14px] font-medium whitespace-nowrap ${
-                              subActive
-                                ? "bg-white text-brand"
-                                : "border border-white text-white"
+                          <span
+                            className={`text-[14px] leading-[21px] tracking-[-0.28px] whitespace-nowrap transition-[color,font-weight] duration-300 ease-out ${
+                              isOpen ? "font-semibold text-white" : "font-normal text-[#525252]"
                             }`}
                           >
-                            {sub.name}
-                          </Link>
-                        );
-                      })}
+                            {item.name}
+                          </span>
+                          {/* 8x4 caret: upright when open, quarter-turned left when closed */}
+                          <span
+                            className={`flex items-center justify-center transition-[width,height,color] duration-300 ease-out ${
+                              isOpen ? "h-[4px] w-[8px] text-white" : "h-[8px] w-[4px] text-[#525252]"
+                            }`}
+                          >
+                            <span
+                              className={`block transition-transform duration-300 ease-out ${
+                                isOpen ? "rotate-0" : "-rotate-90"
+                              }`}
+                            >
+                              <CaretIcon />
+                            </span>
+                          </span>
+                        </button>
+
+                        <div
+                          className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                            isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                          }`}
+                        >
+                          <div className="overflow-hidden">
+                            <div
+                              className={`flex flex-col gap-[4px] pt-[4px] transition-opacity duration-300 ease-out ${
+                                isOpen ? "opacity-100" : "opacity-0"
+                              }`}
+                              inert={!isOpen}
+                            >
+                              {item.children.map((sub) => {
+                                const subActive = sub.match(pathname);
+                                return (
+                                  <Link
+                                    key={sub.name}
+                                    href={sub.href}
+                                    className={`flex h-[26px] w-full items-center rounded-[5px] px-[12px] transition-colors duration-200 ease-out ${
+                                      subActive
+                                        ? "bg-white"
+                                        : "border border-solid border-white hover:bg-white/15"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`text-[12px] leading-[14px] font-medium tracking-[-0.24px] whitespace-nowrap ${
+                                        subActive ? "text-[#f5b800]" : "text-white"
+                                      }`}
+                                    >
+                                      {sub.name}
+                                    </span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
               }
 
+              // Leaf row: active is a 41px white card with a 13px icon gap
+              // (20:7596); resting is 37px with a 14px gap (26:9567).
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={() => {
-                    if (item.children) setOpenMenu(item.name);
-                  }}
-                  className={`flex w-full shrink-0 items-center rounded-[6px] px-[10px] transition-colors ${
+                  className={`transition-colors duration-200 ease-out ${
                     active
-                      ? "h-[41px] bg-brand py-[10px] font-semibold text-white"
-                      : "h-[37px] py-[8px] font-normal text-muted hover:bg-black/[0.04]"
+                      ? "flex w-full flex-col items-center justify-center rounded-[8px] bg-white p-[10px]"
+                      : "flex w-[208px] items-center rounded-[6px] px-[10px] py-[8px] hover:bg-white/40"
                   }`}
                 >
-                  <span className="flex shrink-0 items-center gap-[14px]">
-                    <span className="relative size-[20px] shrink-0 overflow-hidden">
-                      <MaskIcon src={item.icon} inset={item.inset} />
+                  <span className={`flex w-full items-center ${active ? "gap-[13px]" : "gap-[14px]"}`}>
+                    <span className={active ? "text-[#f5b800]" : "text-[#525252]"}>
+                      <Icon />
                     </span>
-                    <span className="flex h-[21px] shrink-0 items-center gap-[8px]">
-                      <span className="text-14 whitespace-nowrap">{item.name}</span>
-                      {item.children && (
-                        <span
-                          aria-hidden
-                          className="relative block h-[4px] w-[8px] shrink-0 -rotate-90"
-                        >
-                          <MaskIcon src="/icons/sidebar/chevron.svg" inset="-16.67% -8.33%" />
-                        </span>
-                      )}
+                    <span
+                      className={`text-[14px] tracking-[-0.28px] whitespace-nowrap ${
+                        active
+                          ? "leading-[1.5] font-semibold text-[#f5b800]"
+                          : "leading-[21px] font-normal text-[#525252]"
+                      }`}
+                    >
+                      {item.name}
                     </span>
                   </span>
                 </Link>
@@ -231,46 +285,47 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* Log out + profile */}
-        <div className="flex w-full flex-col items-start gap-[12px]">
+        {/* Bottom: log out, divider, profile — 12px apart */}
+        <div className="flex w-full flex-col gap-[12px]">
           <button
             type="button"
             onClick={() => {
               window.location.href = "/login";
             }}
-            className="flex h-[50px] w-full cursor-pointer flex-col items-start justify-center rounded-[10px] border border-solid border-muted px-[12px] text-muted transition-colors hover:bg-black/[0.04]"
+            className="flex h-[50px] w-full cursor-pointer flex-col items-start justify-center rounded-[10px] border border-solid border-[#525252] px-[12px]"
           >
-            <span className="flex w-full items-center justify-between">
-              <span className="text-14 font-medium whitespace-nowrap">
+            <span className="flex h-[20px] w-full items-center justify-between">
+              <span className="text-[14px] leading-[1.4] font-medium whitespace-nowrap text-[#525252]">
                 Log Out
               </span>
-              <span className="relative size-[18px] shrink-0 overflow-hidden">
-                <MaskIcon src="/icons/sidebar/logout.svg" inset="12.5% 5.89% 12.5% 12.5%" />
+              <span className="text-[#525252]">
+                <LogOutIcon />
               </span>
             </span>
           </button>
 
-          <div className="h-px w-[208px] shrink-0 bg-muted" />
+          <div className="h-px w-[208px] bg-[#525252]" />
 
-          <div className="flex h-[48px] w-full items-center gap-[8px] rounded-[10px] pl-[10px]">
+          <div className="flex h-[48px] w-full items-center gap-[8px] rounded-[10px] py-[16px] pl-[10px]">
             <Image
-              src="/avatar.png"
+              src="/sidebar/avatar.png"
               alt="Zayn Malik"
               width={32}
               height={32}
               className="size-[32px] shrink-0 rounded-full object-cover"
             />
-            <div className="flex w-[151px] flex-col items-start text-muted">
-              <span className="h-[18px] truncate text-16 font-medium">
+            <div className="flex w-[151px] flex-col text-[#525252]">
+              <span className="flex h-[18px] flex-col justify-center text-[16px] leading-[1.5] font-medium tracking-[-0.32px]">
                 Zayn Malik
               </span>
-              <span className="h-[18px] truncate text-12">
+              <span className="flex h-[18px] flex-col justify-center text-[12px] leading-normal font-normal tracking-[-0.12px]">
                 zaynmalik29@gmail.com
               </span>
             </div>
           </div>
         </div>
       </div>
-    </aside>
+        </aside>
+    </>
   );
 }
