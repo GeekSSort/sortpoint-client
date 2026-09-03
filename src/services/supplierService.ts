@@ -23,7 +23,7 @@ export class SupplierService {
       }
       return {
         data: list,
-        total: 50,
+        total: list.length,
       };
     };
 
@@ -45,19 +45,25 @@ export class SupplierService {
    * Create a new supplier
    */
   static async createSupplier(payload: CreateSupplierPayload): Promise<SupplierRecord> {
-    const fallbackSupplier: SupplierRecord = {
-      id: `sup-${Date.now()}`,
-      index: "14",
-      name: payload.name,
-      avatar: "/image.png",
-      phone: payload.phone,
-      mail: payload.mail,
-      totalPurchases: 0,
-      totalPurchasesFormatted: "৳ 0",
-      balance: 0,
-      balanceFormatted: "৳ 0",
-      lastPurchase: "Today",
-      status: payload.status || "Active",
+    // No backend yet: keep the new supplier in the in-memory list so the add
+    // flow actually round-trips (create -> redirect -> it's in the table).
+    const fallbackSupplier = (): SupplierRecord => {
+      const record: SupplierRecord = {
+        id: `sup-${Date.now()}`,
+        index: String(initialSuppliersData.length + 1).padStart(2, "0"),
+        name: payload.name,
+        avatar: "/image.png",
+        phone: payload.phone,
+        mail: payload.mail,
+        totalPurchases: 0,
+        totalPurchasesFormatted: "৳ 0",
+        balance: 0,
+        balanceFormatted: "৳ 0",
+        lastPurchase: "Today",
+        status: payload.status || "Active",
+      };
+      initialSuppliersData.push(record);
+      return record;
     };
 
     return apiFetch<SupplierRecord>(
