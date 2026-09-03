@@ -3,6 +3,8 @@ export interface CustomerRecord {
   customerId: string;
   name: string;
   phone: string;
+  /** Shown by the POS Reports table; absent on older records. */
+  email?: string;
   type: "Regular" | "VIP" | "Premium";
   orderCount: number;
   totalSpent: number;
@@ -23,6 +25,8 @@ export interface CustomerQueryFilter {
 export interface CreateCustomerPayload {
   name: string;
   phone: string;
+  /** Shown by the POS Reports table; absent on older records. */
+  email?: string;
   type: "Regular" | "VIP" | "Premium";
   status?: "Active" | "Inactive";
 }
