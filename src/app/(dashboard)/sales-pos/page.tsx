@@ -62,7 +62,10 @@ export default function SalesPosPage() {
   };
 
   return (
-    <div className="grid w-full grid-cols-1 gap-[31px] lg:grid-cols-2">
+    // pos-split (globals.css) keeps the designed 50/50 up to the design width,
+    // then pins the invoice column at its natural 565 so a wide monitor gives
+    // the extra pixels to the product grid instead.
+    <div className="pos-split grid w-full grid-cols-1 gap-[31px]">
       {/* Product list (left) — 45:2171 */}
       <div className="min-w-0">
         <ProductGrid onSelectProduct={handleSelectProduct} />

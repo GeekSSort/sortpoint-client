@@ -38,6 +38,8 @@ function pageList(current: number, total: number): (number | "…")[] {
 const SQUARE =
   "flex size-[32px] items-center justify-center rounded-[8px] border border-solid border-[#eaeaea] bg-white text-[#525252] transition-colors not-disabled:cursor-pointer hover:not-disabled:bg-[#fafafa] disabled:cursor-not-allowed disabled:text-[#d4d4d4]";
 const SIZES = [8, 16, 24, 50];
+// The POS grid is 3 across, so its options are multiples of 3 — a page that
+// ends mid-row leaves a ragged gap where a product should be.
 
 export interface TablePaginationProps {
   page: number;
@@ -47,6 +49,8 @@ export interface TablePaginationProps {
   onPageSizeChange: (size: number) => void;
   /** POS variant: 48px tall, tighter gutters and group gaps. */
   dense?: boolean;
+  /** Page-size options. Defaults to the table set. */
+  sizes?: number[];
 }
 
 export default function TablePagination({
@@ -56,6 +60,7 @@ export default function TablePagination({
   onPageChange,
   onPageSizeChange,
   dense = false,
+  sizes = SIZES,
 }: TablePaginationProps) {
   const [sizeOpen, setSizeOpen] = useState(false);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -90,7 +95,7 @@ export default function TablePagination({
           </button>
           {sizeOpen && (
             <div className="absolute bottom-[38px] left-0 z-30 w-[110px] overflow-hidden rounded-[10px] bg-white py-[4px] shadow-[0_8px_30px_rgba(0,0,0,0.10)] ring-1 ring-[#eaeaea]">
-              {SIZES.map((n) => (
+              {sizes.map((n) => (
                 <button
                   key={n}
                   type="button"

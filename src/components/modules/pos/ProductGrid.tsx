@@ -77,7 +77,10 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   const [category, setCategory] = useState<ProductCategory>("All Categories");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+  // 9 a page — 3 across x 3 down at the design width, which is the Figma page.
+  // The grid stays on 150-180px cards and simply adds columns on a wider screen
+  // rather than stretching three of them to 300px each.
+  const [pageSize, setPageSize] = useState(9);
 
   useEffect(() => {
     PosService.getProducts().then(setProducts).catch(() => {});
@@ -97,7 +100,7 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   const shown = filtered.slice((current - 1) * pageSize, current * pageSize);
 
   return (
-    <div className="flex w-full flex-col">
+    <div className="flex h-full w-full flex-col">
       {/* Search — 45:2172 */}
       <div className="flex h-[44px] w-full shrink-0 items-center justify-between overflow-clip rounded-[10px] bg-white px-[12px] py-[10px] shadow-[inset_0_0_0_1px_#eaeaea]">
         <div className="flex min-w-0 flex-1 items-center gap-[6px] text-[#525252]">
@@ -194,10 +197,12 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
         <p className="py-[40px] text-center text-[14px] text-[#525252]">No products match that search.</p>
       )}
 
-      {/* Pagination — 45:2309, 14px under the grid */}
-      <div className="mt-[14px]">
+      {/* Pagination — 45:2309. mt-auto pins it to the bottom of the column so it
+          lines up with the pay buttons opposite. */}
+      <div className="mt-auto pt-[14px]">
         <TablePagination
           dense
+          sizes={[9, 18, 27, 54]}
           page={current}
           pageSize={pageSize}
           total={filtered.length}

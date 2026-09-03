@@ -87,6 +87,19 @@
   }
 }
 
+/* POS split — Figma has the product list and the invoice column at 565 each in
+   a 1160 container, so a plain 50/50 reproduces the design exactly and then
+   keeps growing: on a 1920 monitor the invoice column reaches 800px, which it
+   has no use for. The invoice column has a natural width; the product grid does
+   not. So the second track is 50% minus half the gap, capped at its designed
+   565 — identical to the design up to that point, and past it every extra pixel
+   goes to the product grid, which turns them into more product columns. */
+@media (min-width: 1024px) {
+  .pos-split {
+    grid-template-columns: minmax(0, 1fr) min(calc(50% - 15.5px), 565px);
+  }
+}
+
 /* Entrance motion. tailwindcss-animate isn't a dependency here, so the few
    transitions the app needs are hand-rolled — short, eased, and skipped
    entirely for anyone who asked for reduced motion. */
@@ -122,6 +135,12 @@
     transform: translate3d(0, 0, 0) scale(1);
     filter: blur(0);
   }
+}
+
+/* The confirmation tick, drawn on rather than faded in. */
+@keyframes sp-tick {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
 
 /* The corner glow that trails the panel in. */
@@ -163,7 +182,8 @@
   .sp-panel,
   .sp-panel-glow,
   .sp-panel-up,
-  .sp-stagger > * {
+  .sp-stagger > *,
+  [style*="sp-tick"] {
     animation: none !important;
     filter: none !important;
     transform: none !important;
