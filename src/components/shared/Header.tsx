@@ -86,9 +86,10 @@ function subtitleForPath(pathname: string): string | null {
 
 /** Route -> title, matching the section names used in the sidebar. */
 function titleForPath(pathname: string): string {
+  if (pathname.startsWith("/pos")) return "POS";
   if (pathname.startsWith("/sales-pos/sales")) return "Sales";
   if (pathname.startsWith("/sales-pos/return")) return "Returns";
-  if (pathname.startsWith("/sales-pos")) return "POS";
+
   if (pathname.startsWith("/customers")) return "Customers";
   if (pathname.startsWith("/inventory/stock/add")) return "Add Stock";
   if (pathname.startsWith("/inventory/stock")) return "Stock";
