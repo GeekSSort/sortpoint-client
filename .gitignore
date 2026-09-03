@@ -15,6 +15,10 @@
 
 # next.js
 /.next/
+# Alternate build dirs (NEXT_DIST_DIR). Must be ignored: Tailwind v4 reads
+# .gitignore to decide what to scan for classes, and an unignored build dir
+# makes it extract garbage class names out of compiled binaries.
+/.next-*/
 /out/
 
 # production

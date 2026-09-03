@@ -3,25 +3,27 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     /**
+     * Disables the on-disk image cache.
+     *
      * Next 16 writes optimized images to `.next/cache/images` and evicts them
-     * with an LRU keyed by size on disk. With no value configured it measures
-     * free disk space once at startup and budgets HALF of it — on a machine
-     * with 150 GB free that is a ~75 GB cache ceiling, and the size arithmetic
-     * around it is what throws
+     * with an LRU keyed by size on disk. Some entries measure 0, and an entry
+     * that measures 0 could never be evicted, so the cache throws
      *
      *   LRUCache: calculateSize returned 0, but size must be > 0
      *
-     * on every image write (vercel/next.js#89033 — an entry that measures 0
-     * could never be evicted, so the cache refuses it). The images still
-     * render; only the cache write fails, so it is noise rather than breakage,
-     * but it is noise on every request. Not fixed in 16.3.4, whose changes are
-     * testmode, TypeScript aliasing and Turbopack crossOrigin.
+     * on every write (vercel/next.js#89033). Capping the cache at a sane 256 MB
+     * did not help — the throw is in the size arithmetic, not the ceiling — and
+     * 16.3.4 does not carry a fix, so 0 is the documented way out.
      *
-     * 256 MB is a real ceiling for an app whose images are a logo, two avatars
-     * and a handful of product shots. Set this to 0 to disable the disk cache
-     * outright if the error survives.
+     * The cost is small and bounded: images are still optimized and still sent
+     * with cache headers, so browsers and any CDN in front of us cache them
+     * exactly as before. Only the server-side copy on disk goes away, which
+     * means a cold request re-encodes instead of reading a file. For a logo,
+     * two avatars and a handful of product shots that is not a real expense.
+     *
+     * Revisit once upstream fixes the size calculation.
      */
-    maximumDiskCacheSize: 256_000_000,
+    maximumDiskCacheSize: 0,
   },
 };
 
