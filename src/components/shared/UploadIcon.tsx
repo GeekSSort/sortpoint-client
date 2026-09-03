@@ -1,0 +1,17 @@
+import React from "react";
+
+/**
+ * The upload cloud used by every "Upload Image" dropzone — Figma 57:13809 on
+ * Add Product and 73:3910 on Add Supplier, the same 32.984 x 24 glyph.
+ * Kept at its designed aspect so it never squares off.
+ */
+export default function UploadIcon() {
+  return (
+    <svg className="block h-[24px] w-[32.984px] shrink-0" viewBox="0 0 32.984 24" fill="none" aria-hidden>
+      <path
+        d="M25.7725 24H18.6959V16.8492H21.0345C21.6276 16.8492 21.9781 16.1752 21.6276 15.69L17.0783 9.39511C16.7885 8.99073 16.1887 8.99073 15.8989 9.39511L11.3496 15.69C10.9992 16.1752 11.3429 16.8492 11.9427 16.8492H14.2814V24H6.35552C2.81719 23.8045 0 20.4954 0 16.9099C0 14.4364 1.3412 12.2797 3.3294 11.1137C3.14743 10.6217 3.05307 10.096 3.05307 9.54339C3.05307 7.01601 5.0952 4.97388 7.62258 4.97388C8.16849 4.97388 8.69419 5.06824 9.18618 5.25021C10.6487 2.14996 13.8029 0 17.4693 0C22.214 0 26.0691 3.7472 26.2444 8.44815C29.9714 9.0951 32.984 12.2528 32.984 16.2764C32.984 20.4145 29.8501 23.8382 25.7725 24Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
