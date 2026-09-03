@@ -4,354 +4,270 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Receipt,
-  Users,
-  Boxes,
-  ShoppingCart,
-  UserCheck,
-  ShieldCheck,
-  Settings,
-  HelpCircle,
-  ChevronRight,
-  ChevronDown,
-  LogOut,
-  PanelLeftClose,
-} from "lucide-react";
 import { useSidebar } from "./SidebarContext";
+import MaskIcon from "../ui/MaskIcon";
+
+/**
+ * Figma: SORTPoint / node 59:17268 (sidebar), with the expanded submenu from
+ * the design system's node 77:20880.
+ */
+interface SubItem {
+  name: string;
+  href: string;
+  match?: (pathname: string) => boolean;
+}
 
 interface NavItem {
   name: string;
   href: string;
-  icon: React.ElementType;
-  hasChevron?: boolean;
+  icon: string;
+  /** inset of the glyph inside its 20x20 frame, straight from Figma */
+  inset: string;
+  children?: SubItem[];
 }
 
 const navItems: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Sales & POS", href: "/sales-pos", icon: Receipt, hasChevron: true },
-  { name: "Customers", href: "/customers", icon: Users },
-  { name: "Inventory", href: "/inventory", icon: Boxes, hasChevron: true },
-  { name: "Purchases", href: "/purchases", icon: ShoppingCart, hasChevron: true },
-  { name: "HRM", href: "/hrm", icon: UserCheck },
-  { name: "Roles & Permissions", href: "/roles-permissions", icon: ShieldCheck },
-  { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Help & Support", href: "/help", icon: HelpCircle },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: "/icons/sidebar/dashboard.svg",
+    inset: "8.33%",
+  },
+  {
+    name: "Sales & POS",
+    href: "/sales-pos",
+    icon: "/icons/sidebar/sales-pos.svg",
+    inset: "8.33% 16.04% 8.33% 16.67%",
+    children: [
+      {
+        name: "POS",
+        href: "/sales-pos",
+        match: (p) => p === "/sales-pos" || p === "/sales-pos/pos",
+      },
+      { name: "Sales", href: "/sales-pos/sales" },
+      { name: "Return", href: "/sales-pos/return" },
+    ],
+  },
+  {
+    name: "Customers",
+    href: "/customers",
+    icon: "/icons/sidebar/customers.svg",
+    inset: "8.33% 12.3% 8.33% 8.33%",
+  },
+  {
+    name: "Inventory",
+    href: "/inventory",
+    icon: "/icons/sidebar/inventory.svg",
+    inset: "6.25% 7.33% 10.42% 6.25%",
+    children: [
+      {
+        name: "Product",
+        href: "/inventory",
+        match: (p) =>
+          !p.startsWith("/inventory/stock") && !p.startsWith("/inventory/transfers"),
+      },
+      { name: "Stock", href: "/inventory/stock" },
+      { name: "Transfers", href: "/inventory/transfers" },
+    ],
+  },
+  {
+    name: "Purchases",
+    href: "/purchases",
+    icon: "/icons/sidebar/purchases.svg",
+    inset: "12.5% 8.33% 12.37% 8.33%",
+    children: [
+      {
+        name: "Purchase History",
+        href: "/purchases",
+        match: (p) => !p.startsWith("/purchases/suppliers"),
+      },
+      { name: "Suppliers", href: "/purchases/suppliers" },
+    ],
+  },
+  {
+    name: "HRM",
+    href: "/hrm",
+    icon: "/icons/sidebar/hrm.svg",
+    inset: "8.33% 8.33% 10.11% 8.33%",
+  },
+  {
+    name: "Roles & Permissions",
+    href: "/roles-permissions",
+    icon: "/icons/sidebar/roles.svg",
+    inset: "12.5%",
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: "/icons/sidebar/settings.svg",
+    inset: "8.33% 8.35% 8.33% 12.5%",
+  },
 ];
+
+const isRouteActive = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isCollapsed, toggleSidebar } = useSidebar();
-  
-  const isSalesPosRoute = pathname.startsWith("/sales-pos");
-  const isInventoryRoute = pathname.startsWith("/inventory");
-  const isPurchasesRoute = pathname.startsWith("/purchases");
+  const { isCollapsed } = useSidebar();
 
-  const [salesPosOpen, setSalesPosOpen] = useState(isSalesPosRoute);
-  const [inventoryOpen, setInventoryOpen] = useState(isInventoryRoute);
-  const [purchasesOpen, setPurchasesOpen] = useState(isPurchasesRoute);
-
-  const isReturnActive = pathname.startsWith("/sales-pos/return");
-  const isSalesActive = pathname.startsWith("/sales-pos/sales");
-  const isPosActive = (pathname === "/sales-pos" || pathname === "/sales-pos/pos") && !isReturnActive && !isSalesActive;
-
-  const isInventoryStockActive = pathname.startsWith("/inventory/stock");
-  const isInventoryTransfersActive = pathname.startsWith("/inventory/transfers");
-  const isInventoryProductActive = (pathname === "/inventory" || pathname === "/inventory/add" || pathname === "/inventory/products" || pathname.startsWith("/inventory/products")) && !isInventoryStockActive && !isInventoryTransfersActive;
-
-  const isSuppliersActive = pathname.startsWith("/purchases/suppliers");
-  const isPurchaseHistoryActive = (pathname === "/purchases" || pathname.startsWith("/purchases/history") || pathname.startsWith("/purchases")) && !isSuppliersActive;
+  const [openMenu, setOpenMenu] = useState<string | null>(
+    () => navItems.find((i) => i.children && isRouteActive(pathname, i.href))?.name ?? null
+  );
 
   return (
     <aside
-      className={`bg-[#F8F9FA] border-r border-gray-200 flex flex-col justify-between select-none shrink-0 transition-all duration-300 ease-in-out overflow-hidden z-40 ${
+      className={`flex shrink-0 items-center justify-center overflow-hidden bg-surface transition-all duration-300 ease-in-out select-none z-40 ${
         isCollapsed
-          ? "w-0 p-0 border-r-0 opacity-0 pointer-events-none -translate-x-full"
-          : "w-[240px] min-h-screen pt-[20px] pb-[20px] px-[16px] gap-[10px] opacity-100 translate-x-0"
+          ? "w-0 -translate-x-full p-0 opacity-0 pointer-events-none"
+          : "h-screen w-[240px] translate-x-0 px-[16px] py-[20px] opacity-100"
       }`}
     >
-      {/* Top Section */}
-      <div className="flex flex-col gap-[10px] w-[208px]">
-        {/* Brand / Logo + Minimize button */}
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <Link href="/dashboard" className="block relative flex-1 h-[52px] rounded-xl overflow-hidden bg-[#16161a]">
+      <div className="flex h-full w-[208px] flex-col items-start justify-between">
+        {/* Logo + navigation */}
+        <div className="flex w-full flex-col items-center justify-center gap-[32px]">
+          <Link href="/dashboard" className="block h-[54px] w-[208px] shrink-0">
             <Image
-              src="/left_sidebar_logo.png"
-              alt="SORTPOINT SMART POS · SIMPLY BUSINESS"
-              fill
-              className="object-contain p-1.5"
+              src="/sidebar_logo.png"
+              alt="SORTPoint — Smart POS, Simple Business"
+              width={208}
+              height={54}
+              className="h-[54px] w-[208px] object-contain"
               priority
             />
           </Link>
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            title="Minimize sidebar"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors cursor-pointer"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+
+          <nav className="flex w-full flex-col gap-[8px]">
+            {navItems.map((item) => {
+              const active = isRouteActive(pathname, item.href);
+              const isOpen = openMenu === item.name;
+
+              const expanded = !!item.children && isOpen;
+
+              // Expanded parents become the brand card from node 77:20880:
+              // header plus its sub-items, all inside one gold panel.
+              if (expanded) {
+                return (
+                  <div
+                    key={item.name}
+                    className="flex w-full items-start gap-[14px] rounded-[6px] bg-brand px-[14px] py-[8px]"
+                  >
+                    <span className="relative mt-[0.5px] size-[20px] shrink-0 overflow-hidden text-white">
+                      <MaskIcon src={item.icon} inset={item.inset} />
+                    </span>
+                    <div className="flex flex-1 flex-col items-start gap-[4px]">
+                      <button
+                        type="button"
+                        onClick={() => setOpenMenu(null)}
+                        className="flex h-[21px] cursor-pointer items-center gap-[8px]"
+                      >
+                        <span className="text-14 font-semibold whitespace-nowrap text-white">
+                          {item.name}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="relative block h-[4px] w-[8px] shrink-0 -scale-y-100 text-white"
+                        >
+                          <MaskIcon src="/icons/sidebar/chevron.svg" inset="-16.67% -8.33%" />
+                        </span>
+                      </button>
+                      {item.children!.map((sub) => {
+                        const subActive = sub.match
+                          ? active && sub.match(pathname)
+                          : isRouteActive(pathname, sub.href);
+                        return (
+                          <Link
+                            key={sub.name}
+                            href={sub.href}
+                            // Fixed height so the bordered variants match the
+                            // filled one — Figma strokes are inside-aligned.
+                            className={`flex h-[26px] w-full items-center rounded-[5px] px-[12px] text-12 leading-[14px] font-medium whitespace-nowrap ${
+                              subActive
+                                ? "bg-white text-brand"
+                                : "border border-white text-white"
+                            }`}
+                          >
+                            {sub.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => {
+                    if (item.children) setOpenMenu(item.name);
+                  }}
+                  className={`flex w-full shrink-0 items-center rounded-[6px] px-[10px] transition-colors ${
+                    active
+                      ? "h-[41px] bg-brand py-[10px] font-semibold text-white"
+                      : "h-[37px] py-[8px] font-normal text-muted hover:bg-black/[0.04]"
+                  }`}
+                >
+                  <span className="flex shrink-0 items-center gap-[14px]">
+                    <span className="relative size-[20px] shrink-0 overflow-hidden">
+                      <MaskIcon src={item.icon} inset={item.inset} />
+                    </span>
+                    <span className="flex h-[21px] shrink-0 items-center gap-[8px]">
+                      <span className="text-14 whitespace-nowrap">{item.name}</span>
+                      {item.children && (
+                        <span
+                          aria-hidden
+                          className="relative block h-[4px] w-[8px] shrink-0 -rotate-90"
+                        >
+                          <MaskIcon src="/icons/sidebar/chevron.svg" inset="-16.67% -8.33%" />
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex flex-col gap-[6px]">
-          {navItems.map((item) => {
-            const isDashboard = item.href === "/dashboard" && (pathname === "/" || pathname === "/dashboard");
-            const isSalesPos = item.name === "Sales & POS";
-            const isInventory = item.name === "Inventory";
-            const isPurchases = item.name === "Purchases";
-            const isActive = isSalesPos
-              ? isSalesPosRoute
-              : isInventory
-              ? isInventoryRoute
-              : isPurchases
-              ? isPurchasesRoute
-              : (pathname === item.href || isDashboard || (item.href === "/customers" && pathname.startsWith("/customers")));
-            const Icon = item.icon;
+        {/* Log out + profile */}
+        <div className="flex w-full flex-col items-start gap-[12px]">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/login";
+            }}
+            className="flex h-[50px] w-full cursor-pointer flex-col items-start justify-center rounded-[10px] border border-solid border-muted px-[12px] text-muted transition-colors hover:bg-black/[0.04]"
+          >
+            <span className="flex w-full items-center justify-between">
+              <span className="text-14 font-medium whitespace-nowrap">
+                Log Out
+              </span>
+              <span className="relative size-[18px] shrink-0 overflow-hidden">
+                <MaskIcon src="/icons/sidebar/logout.svg" inset="12.5% 5.89% 12.5% 12.5%" />
+              </span>
+            </span>
+          </button>
 
-            // Render expanded Golden Card for Sales & POS
-            if (isSalesPos && (salesPosOpen || isSalesPosRoute)) {
-              return (
-                <div
-                  key={item.name}
-                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSalesPosOpen(!salesPosOpen)}
-                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Receipt className="w-4 h-4 text-white" />
-                      <span>Sales & POS</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-white" />
-                  </button>
+          <div className="h-px w-[208px] shrink-0 bg-muted" />
 
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <Link
-                      href="/sales-pos"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isPosActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      POS
-                    </Link>
-
-                    <Link
-                      href="/sales-pos/sales"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isSalesActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Sales
-                    </Link>
-
-                    <Link
-                      href="/sales-pos/return"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isReturnActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Return
-                    </Link>
-                  </div>
-                </div>
-              );
-            }
-
-            // Render expanded Golden Card for Inventory
-            if (isInventory && (inventoryOpen || isInventoryRoute)) {
-              return (
-                <div
-                  key={item.name}
-                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setInventoryOpen(!inventoryOpen)}
-                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Boxes className="w-4 h-4 text-white" />
-                      <span>Inventory</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-white" />
-                  </button>
-
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <Link
-                      href="/inventory"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isInventoryProductActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Product
-                    </Link>
-
-                    <Link
-                      href="/inventory/stock"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isInventoryStockActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Stock
-                    </Link>
-
-                    <Link
-                      href="/inventory/transfers"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isInventoryTransfersActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Transfers
-                    </Link>
-                  </div>
-                </div>
-              );
-            }
-
-            // Render expanded Golden Card for Purchases
-            if (isPurchases && (purchasesOpen || isPurchasesRoute)) {
-              return (
-                <div
-                  key={item.name}
-                  className="bg-[#F4B41A] rounded-2xl p-2.5 sm:p-3 text-white shadow-sm flex flex-col gap-2 transition-all"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setPurchasesOpen(!purchasesOpen)}
-                    className="flex items-center justify-between w-full text-left font-bold text-sm text-white cursor-pointer select-none"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <ShoppingCart className="w-4 h-4 text-white" />
-                      <span>Purchases</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-white" />
-                  </button>
-
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <Link
-                      href="/purchases"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isPurchaseHistoryActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Purchase History
-                    </Link>
-
-                    <Link
-                      href="/purchases/suppliers"
-                      className={`w-full text-left py-1.5 px-3 rounded-lg font-medium text-xs transition-colors block ${
-                        isSuppliersActive
-                          ? "bg-white text-gray-900 font-semibold shadow-2xs"
-                          : "border border-white/50 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      Suppliers
-                    </Link>
-                  </div>
-                </div>
-              );
-            }
-
-            const isHrm = item.name === "HRM";
-            const isHrmActive = isHrm && pathname.startsWith("/hrm");
-            const isRoles = item.name === "Roles & Permissions";
-            const isRolesActive = isRoles && pathname.startsWith("/roles-permissions");
-            const isSettings = item.name === "Settings";
-            const isSettingsActive = isSettings && pathname.startsWith("/settings");
-
-            const isGoldActive = isHrmActive || isRolesActive || isSettingsActive;
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => {
-                  if (isSalesPos) setSalesPosOpen(true);
-                  if (isInventory) setInventoryOpen(true);
-                  if (isPurchases) setPurchasesOpen(true);
-                }}
-                className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isGoldActive
-                    ? "bg-[#F4B41A] text-white shadow-sm font-bold"
-                    : isActive
-                    ? "bg-white text-[#F4B41A] shadow-xs"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={`w-[18px] h-[18px] transition-colors ${
-                      isGoldActive
-                        ? "text-white"
-                        : isActive
-                        ? "text-[#F4B41A]"
-                        : "text-gray-500 group-hover:text-gray-700"
-                    }`}
-                  />
-                  <span>{item.name}</span>
-                </div>
-                {item.hasChevron && (
-                  <ChevronRight
-                    className={`w-4 h-4 transition-transform text-gray-400 ${
-                      isActive ? "text-[#F4B41A]" : "group-hover:translate-x-0.5"
-                    }`}
-                  />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Bottom Section: Log Out & User Profile */}
-      <div className="flex flex-col gap-4 mt-auto pt-4 w-[208px]">
-        {/* Log Out Button */}
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = "/login";
-          }}
-          className="w-full py-2 px-3.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 flex items-center justify-between transition-all cursor-pointer shadow-2xs"
-        >
-          <span>Log Out</span>
-          <LogOut className="w-4 h-4 text-gray-500 rotate-180" />
-        </button>
-
-        {/* User Card */}
-        <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-200 relative shrink-0">
+          <div className="flex h-[48px] w-full items-center gap-[8px] rounded-[10px] pl-[10px]">
             <Image
-              src="/image.png"
+              src="/avatar.png"
               alt="Zayn Malik"
-              fill
-              className="object-cover"
+              width={32}
+              height={32}
+              className="size-[32px] shrink-0 rounded-full object-cover"
             />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-gray-900 truncate">
-              Zayn Malik
-            </span>
-            <span className="text-[11px] text-gray-500 truncate">
-              zaynmalik29@gmail.com
-            </span>
+            <div className="flex w-[151px] flex-col items-start text-muted">
+              <span className="h-[18px] truncate text-16 font-medium">
+                Zayn Malik
+              </span>
+              <span className="h-[18px] truncate text-12">
+                zaynmalik29@gmail.com
+              </span>
+            </div>
           </div>
         </div>
       </div>
