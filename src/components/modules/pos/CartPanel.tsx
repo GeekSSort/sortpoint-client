@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { CartItem, CheckoutPayload, Customer } from "@/types/pos";
 import { CustomerService, PosService } from "@/services";
+import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/shared/Modal";
+import Receipt from "@/components/shared/Receipt";
 
 /**
  * Figma: SORTPoint — POS invoice column 45:2333.
@@ -243,6 +245,23 @@ export default function CartPanel({
     c.name.toLowerCase().includes(customerQuery.trim().toLowerCase())
   );
 
+  // What the confirmation modal shows. Held separately from `cart`, which is
+  // cleared the moment the sale succeeds.
+  const [receipt, setReceipt] = useState<{
+    invoiceNo: string;
+    method: string;
+    items: number;
+    units: number;
+    subtotal: number;
+    shipping: number;
+    discount: number;
+    total: number;
+    customer: string;
+    at: string;
+    lines: { name: string; price: string; qty: number; total: string }[];
+  } | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
   const pay = async (method: CheckoutPayload["paymentMethod"]) => {
     if (!cart.length || busy) return;
     setBusy(true);
@@ -260,7 +279,28 @@ export default function CartPanel({
         discountAmount: totals.discount,
         totalAmount: totals.total,
       });
-      setStatus(res?.invoiceNo ? `Paid — invoice ${res.invoiceNo}` : "Payment recorded");
+      setReceipt({
+        invoiceNo: res?.invoiceNo ?? `INV-${Date.now().toString().slice(-8)}`,
+        method: method === "Cash" ? "Cash" : "Online",
+        items: cart.length,
+        units: cart.reduce((n, i) => n + i.quantity, 0),
+        subtotal: totals.subtotal,
+        shipping: totals.shipping,
+        discount: totals.discount,
+        total: totals.total,
+        lines: cart.map((i) => ({
+          name: i.product.name,
+          price: i.product.price.toLocaleString("en-IN"),
+          qty: i.quantity,
+          total: (i.product.price * i.quantity).toLocaleString("en-IN"),
+        })),
+        customer: customer?.name ?? "Walk-in Customer",
+        at: new Intl.DateTimeFormat("en-GB", {
+          day: "numeric", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        }).format(new Date()),
+      });
+      setStatus(null);
       onClearCart();
       setDiscount("");
       setCoupon("");
@@ -272,7 +312,7 @@ export default function CartPanel({
   };
 
   return (
-    <div className="flex h-full min-h-full w-full flex-col justify-between gap-[32px]">
+    <div className="flex h-full min-h-full w-full flex-col gap-[32px]">
       <div className="flex flex-col gap-[36px]">
         {/* Invoice header — 45:2336 */}
         <div className="flex flex-col gap-[44px]">
@@ -554,7 +594,8 @@ export default function CartPanel({
         </div>
       </div>
 
-      {/* Order summary + pay — 45:2480 */}
+      {/* Order summary — 45:2480. Sits directly under the customer block; the
+          column's slack goes below it, not above. */}
       <div className="flex flex-col gap-[32px]">
         <div className="flex w-full flex-col items-center justify-center bg-white px-[12px] py-[10px]">
           <div className="flex w-full flex-col gap-[10px]">
@@ -583,8 +624,11 @@ export default function CartPanel({
         </div>
 
         {status && <p className="text-[13px] text-[#525252]">{status}</p>}
+      </div>
 
-        <div className="flex w-full items-center gap-[16px]">
+      {/* Pay — mt-auto puts this on the same line as the product grid's
+          pagination bar, and both are 48px tall. */}
+      <div className="mt-auto flex w-full items-center gap-[16px]">
           <button
             type="button"
             disabled={!cart.length || busy}
@@ -593,7 +637,7 @@ export default function CartPanel({
               backgroundImage:
                 "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgb(82,82,82) 0%, rgb(82,82,82) 100%)",
             }}
-            className="flex w-[154px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[12px] text-[16px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-[48px] w-[154px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[12px] text-[16px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cash Pay
           </button>
@@ -605,12 +649,153 @@ export default function CartPanel({
               backgroundImage:
                 "linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgb(245,184,0) 0%, rgb(245,184,0) 100%)",
             }}
-            className="flex min-w-px flex-1 cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[12px] text-[16px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-[48px] min-w-px flex-1 cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[12px] text-[16px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Processing…" : "Pay Online"}
           </button>
-        </div>
       </div>
+
+      {/* Order confirmed — no Figma frame; built in the app's own language. */}
+      <Modal
+        open={receipt !== null}
+        onClose={() => setReceipt(null)}
+        title="Order confirmed"
+        width={420}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setReceiptOpen(true)}>
+              Print receipt
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => setReceipt(null)}
+            >
+              New sale
+            </button>
+          </>
+        }
+      >
+        {receipt && (
+          <div className="flex flex-col items-center gap-[18px] text-center">
+            {/* The tick draws itself once — a moment of completion, not decoration. */}
+            <span className="sp-rise flex size-[64px] items-center justify-center rounded-full bg-[#f5fff8] ring-1 ring-[#00b837]/25">
+              <svg className="block size-[32px]" viewBox="0 0 32 32" fill="none" aria-hidden>
+                <path
+                  d="M8 16.5l5.5 5.5L24 11"
+                  stroke="#00b837"
+                  strokeWidth="2.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  pathLength={1}
+                  strokeDasharray={1}
+                  strokeDashoffset={0}
+                  style={{ animation: "sp-tick 420ms 120ms cubic-bezier(0.65,0,0.35,1) both" }}
+                />
+              </svg>
+            </span>
+
+            <div>
+              <p className="text-[24px] leading-[1.25] font-medium tracking-[-0.5px] text-[#1e1e1e]">
+                {money(receipt.total)}
+              </p>
+              <p className="mt-[4px] text-[13px] text-[#525252]">
+                Paid by {receipt.method} · {receipt.at}
+              </p>
+            </div>
+
+            <div className="w-full rounded-[10px] bg-[#fafafa] px-[14px] py-[12px]">
+              <dl className="flex flex-col gap-[8px] text-[13px]">
+                {[
+                  ["Invoice", receipt.invoiceNo],
+                  ["Customer", receipt.customer],
+                  ["Items", `${receipt.items} product${receipt.items === 1 ? "" : "s"} · ${receipt.units} unit${receipt.units === 1 ? "" : "s"}`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-[16px]">
+                    <dt className="text-[#525252]">{k}</dt>
+                    <dd className="truncate font-medium text-[#1e1e1e]">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <p className="text-[12px] text-[#8a8a8a]">Thank you — the cart is ready for the next customer.</p>
+          </div>
+        )}
+      </Modal>
+
+      {/* The printed receipt. Same component Sales, Returns and Purchases use —
+          only the props differ. */}
+      <Modal
+        open={receiptOpen && receipt !== null}
+        onClose={() => setReceiptOpen(false)}
+        title="Receipt"
+        width={380}
+        footer={
+          <>
+            <button type="button" className={MODAL_GHOST} onClick={() => setReceiptOpen(false)}>
+              Close
+            </button>
+            <button
+              type="button"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+              className={MODAL_PRIMARY}
+              onClick={() => window.print()}
+            >
+              Print
+            </button>
+          </>
+        }
+      >
+        {receipt && (
+          <div className="print-area">
+            <Receipt
+              business={{
+                name: "SORTPoint",
+                tagline: "Smart POS • Simple Business",
+                address: "Road-15, Block-D, House-50, Banani, Dhaka-1213",
+                bin: "000123456-0101",
+              }}
+              title="SALES INVOICE"
+              meta={[
+                { label: "Customer", value: receipt.customer },
+                { label: "Cashier", value: "Zayn Malik (Admin)" },
+                { label: "Terminal ID", value: "POS" },
+                { label: "Invoice No", value: receipt.invoiceNo },
+                { label: "Date", value: receipt.at },
+              ]}
+              note="To enjoy special discount, please register as a VIP Member."
+              itemsHeading="Item Description"
+              items={receipt.lines.map((l) => ({
+                name: l.name,
+                price: l.price,
+                qty: l.qty,
+                total: l.total,
+              }))}
+              totals={[
+                { label: "Sub Total:", value: receipt.subtotal.toLocaleString("en-IN") },
+                { label: "(-)Discount:", value: receipt.discount.toLocaleString("en-IN") },
+                { label: "Shipping:", value: receipt.shipping.toLocaleString("en-IN") },
+                {
+                  label: "Total Amount:",
+                  value: receipt.total.toLocaleString("en-IN"),
+                  strong: true,
+                  ruleAbove: true,
+                },
+                { label: "Paid by:", value: receipt.method },
+                { label: "Net Payable:", value: receipt.total.toLocaleString("en-IN"), strong: true },
+                { label: "Status:", value: "Paid" },
+              ]}
+              footerNotes={[
+                "Thank you for shopping with SORTPoint",
+                "Any queries or complaints, please call 01772814907",
+              ]}
+              system={{ name: "GeekSSort", url: "www.geekssort.com" }}
+            />
+          </div>
+        )}
+      </Modal>
 
       {/* Add customer — no Figma frame; built in the app's own language. */}
       {addOpen && (
