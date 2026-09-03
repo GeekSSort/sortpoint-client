@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright / chromatic
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright-mcp/
+/playwright/.cache/
+chromatic.log
+build-storybook.log
