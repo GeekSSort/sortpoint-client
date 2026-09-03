@@ -13,6 +13,7 @@ import {
   HrmIcon,
   InventoryIcon,
   LogOutIcon,
+  PosIcon,
   PurchasesIcon,
   RolesIcon,
   SalesPosIcon,
@@ -44,17 +45,20 @@ const NAV: NavItem[] = [
     icon: DashboardIcon,
     match: (p) => p === "/" || p === "/dashboard",
   },
+  // POS is its own environment now, not a page inside Sales — it takes the whole
+  // window and has its own rail, so it is a top-level destination here.
   {
-    name: "Sales & POS",
-    href: "/sales-pos",
+    name: "POS",
+    href: "/pos",
+    icon: PosIcon,
+    match: (p) => p.startsWith("/pos"),
+  },
+  {
+    name: "Sales",
+    href: "/sales-pos/sales",
     icon: SalesPosIcon,
     match: (p) => p.startsWith("/sales-pos"),
     children: [
-      {
-        name: "POS",
-        href: "/sales-pos",
-        match: (p) => p === "/sales-pos" || p === "/sales-pos/pos",
-      },
       { name: "Sales", href: "/sales-pos/sales", match: (p) => p.startsWith("/sales-pos/sales") },
       { name: "Return", href: "/sales-pos/return", match: (p) => p.startsWith("/sales-pos/return") },
     ],
