@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
 import { AuthService } from "@/services";
+import { resolveRealm, currentSubdomain } from "@/services/apiClient";
 
 /**
  * Figma: SORTPoint / Login — node 19:7398.
@@ -73,14 +74,37 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // Which front door this is. The console and a shop are different sign-ins
+  // with different accounts; the address decides which one you are looking at.
+  //
+  // Read with useSyncExternalStore rather than an effect: the value comes from
+  // the browser's address, which the server render cannot know. This gives the
+  // server a stable answer and the browser the real one, with no flash and no
+  // hydration mismatch.
+  const subscribe = () => () => {};
+  const realm = useSyncExternalStore(subscribe, resolveRealm, () => "tenant" as const);
+  const shop = useSyncExternalStore(subscribe, currentSubdomain, () => null);
+  const isConsole = realm === "platform";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     try {
-      await AuthService.login({ email, pin: password });
-      window.location.href = "/dashboard";
-    } catch {
+      const session = await AuthService.login({ email, password });
+      // Back to wherever the guard interrupted them, or their own home: a
+      // cashier has no back office, so /pos is where they belong.
+      const next = new URLSearchParams(window.location.search).get("next");
+      const home = resolveRealm() === "platform" ? "/platform" : session.home;
+      // A full navigation, not router.replace: the browser's "save password?"
+      // prompt fires when a form submit is followed by a real page load, and it
+      // also guarantees the app re-reads the new session from scratch.
+      window.location.assign(next && next.startsWith("/") ? next : home);
+    } catch (err) {
+      // Stay on this page and say what went wrong. Redirecting regardless is
+      // what let people into the app without an account.
+      setError(AuthService.describeError(err));
       setIsLoading(false);
     }
   };
@@ -121,10 +145,14 @@ export default function LoginPage() {
         {/* Headline — gap 8 */}
         <div className="flex w-full flex-col items-center gap-[8px]">
           <h1 className="text-[24px] leading-[1.2] font-semibold tracking-[-0.72px] text-[#1e1e1e]">
-            Welcome back
+            {isConsole ? "Platform console" : "Welcome back"}
           </h1>
           <p className="text-[14px] leading-[1.5] font-normal tracking-[-0.28px] text-[#525252]">
-            Sign in to continue to your SortPoint workspace.
+            {isConsole
+              ? "For SORTPoint staff. Shop accounts sign in at their own company address."
+              : shop
+                ? `Sign in to ${shop}.`
+                : "Sign in to continue to your SortPoint workspace."}
           </p>
         </div>
 
@@ -141,6 +169,10 @@ export default function LoginPage() {
             <div className="flex h-[56px] w-full items-center rounded-[12px] border border-solid border-[#f5b800] bg-white px-[16px] py-[8px]">
               <input
                 id="email"
+                name="email"
+                // Password managers key on these. Without them the browser does
+                // not recognise this as a sign-in form and never offers to save.
+                autoComplete="username"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -164,6 +196,8 @@ export default function LoginPage() {
                 <div className="flex min-w-px flex-1 items-center justify-between gap-[16px]">
                   <input
                     id="password"
+                    name="password"
+                    autoComplete="current-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -175,7 +209,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="flex size-[20px] shrink-0 cursor-pointer items-center justify-center"
+                    className="flex size-[20px] shrink-0 items-center justify-center"
                   >
                     {showPassword ? <EyeIcon /> : <EyeDisableIcon />}
                   </button>
@@ -186,7 +220,7 @@ export default function LoginPage() {
 
           {/* Options */}
           <div className="flex w-full items-center justify-between">
-            <label className="flex cursor-pointer items-center justify-center gap-[6px] select-none">
+            <label className="flex items-center justify-center gap-[6px] select-none">
               <input
                 type="checkbox"
                 checked={rememberMe}
@@ -202,13 +236,31 @@ export default function LoginPage() {
             </label>
 
             <Link
-              href="/forgot-password"
-              className="text-[14px] leading-[1.5] font-medium tracking-[-0.28px] whitespace-nowrap text-[#f5b800]"
+              href={isConsole ? "/platform/forgot-password" : "/forgot-password"}
+              className="cursor-pointer text-[14px] leading-[1.5] font-medium tracking-[-0.28px] whitespace-nowrap text-[#f5b800]"
             >
               Forgot Password ?
             </Link>
           </div>
         </div>
+
+        {!isConsole && (
+          <p className="w-full text-center text-[14px] leading-[1.5] tracking-[-0.28px] text-[#525252]">
+            New company?{" "}
+            <Link href="/signup" className="cursor-pointer font-medium text-[#f5b800]">
+              Create an account
+            </Link>
+          </p>
+        )}
+
+        {error && (
+          <p
+            role="alert"
+            className="w-full rounded-[10px] bg-[#fdeceb] px-[16px] py-[12px] text-[14px] leading-[1.5] font-medium text-[#a02620]"
+          >
+            {error}
+          </p>
+        )}
 
         {/* Sign In */}
         <button
@@ -218,7 +270,7 @@ export default function LoginPage() {
             backgroundImage:
               "linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgb(245, 184, 0) 0%, rgb(245, 184, 0) 100%)",
           }}
-          className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] px-[16px] py-[8px] text-[18px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex h-[56px] w-full items-center justify-center rounded-[12px] px-[16px] py-[8px] text-[18px] leading-[24px] font-semibold whitespace-nowrap text-white shadow-[inset_0px_0px_1.5px_0px_rgba(255,255,255,0.25)] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isLoading ? (
             <span className="size-[20px] animate-spin rounded-full border-2 border-white border-t-transparent" />
