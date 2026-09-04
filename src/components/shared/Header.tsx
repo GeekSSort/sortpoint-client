@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { AuthService, NotificationService } from "@/services";
+import { useSession } from "@/services/useSession";
 import { NotificationItem } from "@/types/notifications";
 import { useSidebar } from "./SidebarContext";
 
@@ -129,6 +130,7 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
   const router = useRouter();
   const { toggleSidebar } = useSidebar();
 
+  const { user: session } = useSession();
   const [open, setOpen] = useState<"bell" | "profile" | null>(null);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
@@ -136,10 +138,11 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
 
   const heading = title ?? titleForPath(pathname);
   const sub = subtitle !== undefined ? subtitle : subtitleForPath(pathname);
+  // The signed-in account, unless a caller passed one explicitly.
   const profile = user ?? {
-    name: "Zayn Malik",
-    email: "zaynmalik29@gmail.com",
-    avatar: "/sidebar/nav-avatar.png",
+    name: session?.name ?? "",
+    email: session?.email ?? "",
+    avatar: session?.avatar || "/sidebar/nav-avatar.png",
   };
 
   useEffect(() => {
