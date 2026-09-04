@@ -20,6 +20,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [activeModal, setActiveModal] = useState<OverviewModalType>(null);
   const [day, setDay] = useState<Date | null>(null);
+  // Bumped by the branch switcher to re-run the fetch below.
+  const [branchKey, setBranchKey] = useState(0);
 
   useEffect(() => {
     async function loadData() {
@@ -34,7 +36,7 @@ export default function DashboardPage() {
       }
     }
     loadData();
-  }, []);
+  }, [branchKey]);
 
   const handleMetricCardClick = (cardId: string) => {
     if (cardId === "revenue") {
@@ -53,7 +55,11 @@ export default function DashboardPage() {
     <div className="flex w-full flex-col gap-[24px]">
       {/* Headline + KPI row travel together, 14px apart (Figma 30:15371). */}
       <div className="flex flex-col gap-[14px]">
-        <Headline name={data.user.name} onDateChange={setDay} />
+        <Headline
+          name={data.user?.name ?? "there"}
+          onDateChange={setDay}
+          onBranchChange={() => setBranchKey((k) => k + 1)}
+        />
         <MetricCards metrics={data.metrics} onCardClick={handleMetricCardClick} />
       </div>
 
@@ -75,7 +81,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activities Data Table */}
-          <RecentActivitiesTable activities={data.recentActivities.filter((a) => matchesDay(a.dateTime, day))} />
+          <RecentActivitiesTable activities={(data.recentActivities ?? []).filter((a) => matchesDay(a.dateTime, day))} />
         </div>
 
         {/* Docked Slide-over Panels: Anchored strictly within the lower section aligned with Sales Summary */}

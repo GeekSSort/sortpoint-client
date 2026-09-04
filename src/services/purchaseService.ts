@@ -1,6 +1,6 @@
 import { PurchaseRecord, PurchaseQueryFilter } from "@/types/purchases";
 import { initialPurchasesData } from "@/lib/services/purchases.service";
-import { apiFetch } from "./apiClient";
+import { apiList } from "./apiClient";
 
 export class PurchaseService {
   /**
@@ -39,8 +39,8 @@ export class PurchaseService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: PurchaseRecord[]; total: number }>(
-      `/purchases${qs}`,
+    return apiList<PurchaseRecord>(
+      `/purchases/${qs}`,
       { method: "GET" },
       fallback
     );

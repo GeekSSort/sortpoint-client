@@ -75,6 +75,14 @@ interface ProductGridProps {
 export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [category, setCategory] = useState<ProductCategory>("All Categories");
+
+  // Built from what the catalogue actually holds. The hard-coded list only ever
+  // matched the sample data, so every real product fell outside all four tabs.
+  const categories = React.useMemo(() => {
+    const found = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
+    found.sort();
+    return ["All Categories", ...found] as ProductCategory[];
+  }, [products]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   // 9 a page — 3 across x 3 down at the design width, which is the Figma page.
@@ -127,8 +135,8 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
 
       {/* Categories — 45:2183, 16px below the search bar */}
       <div className="mt-[16px] flex w-full shrink-0 items-center justify-between gap-[12px]">
-        <div className="-mx-[2px] flex h-[40px] min-w-0 flex-1 items-center gap-[2px] overflow-x-auto px-[2px]">
-          {CATEGORIES.map((c) => {
+        <div className="no-scrollbar -mx-[2px] flex h-[40px] min-w-0 flex-1 items-center gap-[2px] overflow-x-auto px-[2px]">
+          {categories.map((c) => {
             const active = c === category;
             return (
               <button
@@ -169,8 +177,20 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
             className="flex cursor-pointer items-center overflow-clip rounded-[10px] border-[0.6px] border-solid border-[#eaeaea] bg-white p-[10px] text-left transition-colors hover:border-[#f5b800]"
           >
             <div className="flex w-full flex-col items-center justify-center gap-[12px]">
-              <div className="relative aspect-square w-full overflow-hidden rounded-[8px] border-[0.3px] border-solid border-[#eaeaea]">
-                <Image src={p.image} alt={p.name} fill sizes="180px" className="object-cover" />
+              <div className="relative aspect-square w-full overflow-hidden rounded-[8px] border-[0.3px] border-solid border-[#eaeaea] bg-[#fafafa]">
+                {p.image ? (
+                  <Image src={p.image} alt={p.name} fill sizes="180px" className="object-cover" />
+                ) : (
+                  // Real products carry no image yet, and an empty src makes the
+                  // browser re-download the page. Initials are enough to tell
+                  // two products apart on a till screen.
+                  <span
+                    aria-hidden
+                    className="flex h-full w-full items-center justify-center text-[22px] font-semibold text-[#c9c9c9]"
+                  >
+                    {initials(p.name)}
+                  </span>
+                )}
               </div>
               <div className="flex w-full flex-col items-start gap-[8px]">
                 <p className="w-full truncate text-[14px] leading-[24px] font-normal text-[#525252]">
@@ -215,4 +235,14 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
       </div>
     </div>
   );
+}
+
+/** First letters of the first two words — a stand-in for a missing photo. */
+function initials(name: string): string {
+  return (name || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
 }

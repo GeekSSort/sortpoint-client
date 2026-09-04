@@ -22,7 +22,7 @@ export default function ProductCard({
       <div className="flex w-[160px] flex-col items-center justify-center gap-[12px]">
         <div className="relative h-[160px] w-full overflow-hidden rounded-[8px] bg-surface/40 outline-[0.3px] -outline-offset-[0.3px] outline-surface">
           {image && (
-            <Image src={image} alt={name} fill sizes="160px" className="object-cover" />
+            <Image src={image || "/placeholder-product.svg"} alt={name} fill sizes="160px" className="object-cover" />
           )}
         </div>
         <div className="flex w-full flex-col items-start gap-[8px]">

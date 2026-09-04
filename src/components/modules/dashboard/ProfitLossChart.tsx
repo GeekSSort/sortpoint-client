@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ProfitLossData } from "@/types/dashboard";
+import { formatPercent } from "@/lib/format";
 
 /**
  * Figma: SORTPoint — Profit & Loss 30:16864.
@@ -134,7 +135,7 @@ export default function ProfitLossChart({ data }: ProfitLossChartProps) {
           </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center text-[#f5b800]">
             <span className="text-[18px] leading-[1.2] font-medium tracking-[-0.32px]">
-              {data.profitMargin}%
+              {formatPercent(data.profitMargin)}
             </span>
             <span className="text-[14px] leading-[1.2] font-normal tracking-[-0.32px]">Profit Margin</span>
           </div>

@@ -1,6 +1,7 @@
 import { SaleRecord, SalesQueryFilter } from "@/types/sales";
 import { initialSalesData } from "@/lib/services/sales.service";
-import { apiFetch } from "./apiClient";
+import { apiList } from "./apiClient";
+import { toSaleRecord } from "./mappers/sale";
 
 export class SalesService {
   /**
@@ -32,12 +33,17 @@ export class SalesService {
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page) searchParams.set("page", String(params.page));
     if (params?.limit) searchParams.set("limit", String(params.limit));
+    // The API names these date_from / date_to. Sending startDate silently
+    // returned every sale, because an unknown query parameter is ignored.
+    if (params?.startDate) searchParams.set("date_from", params.startDate);
+    if (params?.endDate) searchParams.set("date_to", params.endDate);
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: SaleRecord[]; total: number }>(
-      `/sales${qs}`,
+    return apiList<SaleRecord>(
+      `/sales/${qs}`,
       { method: "GET" },
-      fallback
+      fallback,
+      toSaleRecord
     );
   }
 

@@ -163,7 +163,7 @@ export default function HrmPage() {
                     <div className="flex items-center gap-2.5">
                       <div className="w-6 h-6 rounded-md bg-amber-100 relative shrink-0 overflow-hidden border border-gray-200">
                         <Image
-                          src={item.avatar}
+                          src={item.avatar || "/sidebar/nav-avatar.png"}
                           alt={item.name}
                           fill
                           className="object-cover"

@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { AuthService } from "@/services";
+import { clearSessionCache, useSession } from "@/services/useSession";
 import {
   CaretIcon,
   CustomersIcon,
@@ -44,7 +46,7 @@ const NAV: Item[] = [
     icon: SalesPosIcon,
     match: (p) => p === "/pos" || p.startsWith("/pos/sales") || p.startsWith("/pos/return"),
     children: [
-      { name: "Sell", href: "/pos", match: (p) => p === "/pos" },
+      { name: "POS", href: "/pos", match: (p) => p === "/pos" },
       { name: "Sales", href: "/pos/sales", match: (p) => p.startsWith("/pos/sales") },
       { name: "Return", href: "/pos/return", match: (p) => p.startsWith("/pos/return") },
     ],
@@ -83,9 +85,29 @@ const NAV: Item[] = [
 
 export default function PosRail() {
   const pathname = usePathname();
-  const [openSection, setOpenSection] = useState<string | null>(
-    NAV.find((i) => i.children && i.match(pathname))?.name ?? null
-  );
+
+  const { user: session } = useSession();
+  const router = useRouter();
+
+  // Which group the current page lives in, if any.
+  const routeSection = NAV.find((i) => i.children && i.match(pathname))?.name ?? null;
+
+  // The group the user last had open. Seeded from the route, then kept.
+  const [openSection, setOpenSection] = useState<string | null>(routeSection);
+  const [lastRoute, setLastRoute] = useState<string | null>(routeSection);
+
+  // Adjust during render rather than in an effect — React's own recommendation
+  // for state that has to follow a prop, and it avoids a second paint.
+  //
+  // The bug this fixes: `openSection` was read from the pathname ONCE, at
+  // mount. The rail lives in the layout and does not remount, so stepping from
+  // Sell to Products left the group shut with no way back except a reload.
+  // Now entering a group opens it, and leaving for a page outside every group
+  // leaves it as the user had it.
+  if (routeSection !== lastRoute) {
+    setLastRoute(routeSection);
+    if (routeSection) setOpenSection(routeSection);
+  }
 
   return (
     <aside className="hidden h-full w-[240px] shrink-0 items-center justify-center bg-[#eaeaea] px-[16px] py-[20px] select-none lg:flex">
@@ -163,7 +185,7 @@ export default function PosRail() {
                               <Link
                                 key={sub.name}
                                 href={sub.href}
-                                className={`flex h-[29px] items-center rounded-[6px] px-[10px] text-[14px] leading-[21px] tracking-[-0.28px] whitespace-nowrap transition-colors ${
+                                className={`flex h-[29px] items-center rounded-[6px] border border-solid border-white px-[10px] text-[14px] leading-[21px] tracking-[-0.28px] whitespace-nowrap transition-colors ${
                                   on
                                     ? "bg-white font-medium text-[#f5b800]"
                                     : "font-normal text-white hover:bg-white/20"
@@ -208,8 +230,14 @@ export default function PosRail() {
 
         {/* Log out, rule, profile — 12px apart (247:13642) */}
         <div className="flex w-full flex-col gap-[12px]">
-          <Link
-            href="/dashboard"
+          <button
+            type="button"
+            onClick={async () => {
+              // Was a link to /dashboard — it said Log Out and did not log out.
+              await AuthService.logout();
+              clearSessionCache();
+              router.replace("/login");
+            }}
             className="flex w-full cursor-pointer flex-col items-start justify-center rounded-[10px] border border-solid border-[#525252] px-[12px] py-[15px]"
           >
             <span className="flex w-full items-center justify-between">
@@ -220,24 +248,24 @@ export default function PosRail() {
                 <LogOutIcon />
               </span>
             </span>
-          </Link>
+          </button>
 
           <div className="h-px w-[208px] bg-[#525252]" />
 
           <div className="flex h-[48px] w-full items-center gap-[8px] rounded-[10px] py-[16px] pl-[10px]">
             <Image
-              src="/sidebar/avatar.png"
-              alt="Zayn Malik"
+              src={session?.avatar || "/sidebar/avatar.png"}
+              alt=""
               width={32}
               height={32}
               className="size-[32px] shrink-0 rounded-full object-cover"
             />
             <div className="flex w-[151px] flex-col text-[#525252]">
               <span className="flex h-[18px] flex-col justify-center text-[16px] leading-[1.5] font-medium tracking-[-0.32px]">
-                Zayn Malik
+                {session?.name || "—"}
               </span>
-              <span className="flex h-[18px] flex-col justify-center text-[12px] leading-normal font-normal tracking-[-0.12px]">
-                zaynmalik29@gmail.com
+              <span className="flex h-[18px] flex-col justify-center truncate text-[12px] leading-normal font-normal tracking-[-0.12px]">
+                {session?.email || ""}
               </span>
             </div>
           </div>

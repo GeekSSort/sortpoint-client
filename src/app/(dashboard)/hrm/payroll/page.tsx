@@ -113,7 +113,7 @@ export default function PayrollPage() {
                     <div className="flex items-center gap-2.5">
                       <div className="w-6 h-6 rounded-md bg-amber-100 relative shrink-0 overflow-hidden border border-gray-200">
                         <Image
-                          src={item.employee.avatar}
+                          src={item.employee.avatar || "/sidebar/nav-avatar.png"}
                           alt={item.employee.name}
                           fill
                           className="object-cover"

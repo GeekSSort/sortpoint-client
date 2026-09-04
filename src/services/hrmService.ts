@@ -1,6 +1,6 @@
 import { EmployeeRecord, HrmQueryFilter, CreateEmployeePayload } from "@/types/hrm";
 import { initialEmployeesData } from "@/lib/services/hrm.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export class HrmService {
   /**
@@ -38,8 +38,8 @@ export class HrmService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: EmployeeRecord[]; total: number }>(
-      `/hrm/employees${qs}`,
+    return apiList<EmployeeRecord>(
+      `/hrm/employees/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -62,7 +62,7 @@ export class HrmService {
     };
 
     return apiFetch<EmployeeRecord>(
-      "/hrm/employees",
+      "/hrm/employees/",
       {
         method: "POST",
         body: JSON.stringify(payload),

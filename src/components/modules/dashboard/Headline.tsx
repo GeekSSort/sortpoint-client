@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 
 import DateField from "@/components/shared/DateField";
+import BranchSwitcher from "@/components/shared/BranchSwitcher";
 
 /**
  * Figma: SORTPoint — Headline 30:15372.
@@ -17,11 +18,13 @@ import DateField from "@/components/shared/DateField";
 
 export interface HeadlineProps {
   name: string;
+  /** Fires after the active branch is switched server-side. */
+  onBranchChange?: (branchId: string | null) => void;
   /** Fires when a day is picked; null clears the filter. */
   onDateChange?: (date: Date | null) => void;
 }
 
-export default function Headline({ name, onDateChange }: HeadlineProps) {
+export default function Headline({ name, onDateChange, onBranchChange }: HeadlineProps) {
   // The label is suppressHydrationWarning'd below, which covers the case where
   // the server and the browser sit in different time zones.
   const [selected, setSelected] = useState<Date | null>(null);
@@ -43,8 +46,11 @@ export default function Headline({ name, onDateChange }: HeadlineProps) {
         </p>
       </div>
 
-      {/* Date pill — 30:15376 */}
-      <DateField value={selected} onChange={pick} variant="gold" />
+      {/* Branch, then the date pill — both narrow what the row below reports. */}
+      <div className="flex w-full items-center gap-[12px] sm:w-auto">
+        <BranchSwitcher onChange={onBranchChange} />
+        <DateField value={selected} onChange={pick} variant="gold" />
+      </div>
     </div>
   );
 }

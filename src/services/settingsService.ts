@@ -8,7 +8,7 @@ export class SettingsService {
    */
   static async getCompanyProfile(): Promise<CompanyProfile> {
     return apiFetch<CompanyProfile>(
-      "/settings/company-profile",
+      "/organizations/",
       { method: "GET" },
       initialCompanyProfile
     );
@@ -21,7 +21,7 @@ export class SettingsService {
     const fallback = { ...initialCompanyProfile, ...payload };
 
     return apiFetch<CompanyProfile>(
-      "/settings/company-profile",
+      "/organizations/",
       {
         method: "PUT",
         body: JSON.stringify(payload),

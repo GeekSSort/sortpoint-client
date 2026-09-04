@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { AuthService } from "@/services";
+import { clearSessionCache, useSession } from "@/services/useSession";
 
 import { useSidebar } from "./SidebarContext";
 import {
@@ -120,10 +122,23 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
-  // A section starts open when the route is inside it; clicking the row toggles.
-  const [openSection, setOpenSection] = useState<string | null>(
-    () => NAV.find((i) => i.children && i.match(pathname))?.name ?? null
-  );
+  // A section is open when the route is inside it; clicking the row toggles.
+  //
+  // Read once at mount, this went stale: the sidebar lives in the layout and
+  // does not remount, so navigating between sections left the wrong one open.
+  // Adjusting during render keeps it in step — React's own recommendation for
+  // state that has to follow a changing input.
+  const { user: session } = useSession();
+  const router = useRouter();
+
+  const routeSection = NAV.find((i) => i.children && i.match(pathname))?.name ?? null;
+  const [openSection, setOpenSection] = useState<string | null>(routeSection);
+  const [lastRoute, setLastRoute] = useState<string | null>(routeSection);
+
+  if (routeSection !== lastRoute) {
+    setLastRoute(routeSection);
+    if (routeSection) setOpenSection(routeSection);
+  }
 
   return (
     <>
@@ -293,8 +308,12 @@ export default function Sidebar() {
         <div className="flex w-full flex-col gap-[12px]">
           <button
             type="button"
-            onClick={() => {
-              window.location.href = "/login";
+            onClick={async () => {
+              // Was a bare redirect: the tokens stayed in place, so the guard
+              // let you straight back in.
+              await AuthService.logout();
+              clearSessionCache();
+              router.replace("/login");
             }}
             className="flex h-[50px] w-full cursor-pointer flex-col items-start justify-center rounded-[10px] border border-solid border-[#525252] px-[12px]"
           >
@@ -312,18 +331,18 @@ export default function Sidebar() {
 
           <div className="flex h-[48px] w-full items-center gap-[8px] rounded-[10px] py-[16px] pl-[10px]">
             <Image
-              src="/sidebar/avatar.png"
-              alt="Zayn Malik"
+              src={session?.avatar || "/sidebar/avatar.png"}
+              alt=""
               width={32}
               height={32}
               className="size-[32px] shrink-0 rounded-full object-cover"
             />
             <div className="flex w-[151px] flex-col text-[#525252]">
-              <span className="flex h-[18px] flex-col justify-center text-[16px] leading-[1.5] font-medium tracking-[-0.32px]">
-                Zayn Malik
+              <span className="flex h-[18px] flex-col justify-center truncate text-[16px] leading-[1.5] font-medium tracking-[-0.32px]">
+                {session?.name || "—"}
               </span>
-              <span className="flex h-[18px] flex-col justify-center text-[12px] leading-normal font-normal tracking-[-0.12px]">
-                zaynmalik29@gmail.com
+              <span className="flex h-[18px] flex-col justify-center truncate text-[12px] leading-normal font-normal tracking-[-0.12px]">
+                {session?.email || ""}
               </span>
             </div>
           </div>

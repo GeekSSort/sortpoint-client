@@ -1,8 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { NotificationService } from "@/services";
+import { NotificationItem } from "@/types/notifications";
+import { useSession } from "@/services/useSession";
 
 /**
  * Figma: SORTPoint — POS environment head 247:13658.
@@ -44,6 +47,51 @@ function titleForPath(pathname: string): string {
 
 export default function PosHead() {
   const pathname = usePathname();
+  const { user: session } = useSession();
+
+  // The bell was a button with no handler. Same behaviour as the dashboard's:
+  // opening it lists the notifications and marks them read.
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    NotificationService.unreadCount()
+      .then((n) => alive && setUnread(n))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const toggleBell = async () => {
+    if (open) return setOpen(false);
+    setOpen(true);
+    const list = await NotificationService.list();
+    setItems(list);
+    const unreadIds = list.filter((n) => !n.isRead).map((n) => n.id);
+    if (unreadIds.length) {
+      await NotificationService.markRead(unreadIds);
+      setUnread(0);
+      setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    }
+  };
 
   return (
     <header className="flex w-full shrink-0 items-center justify-between border-b border-solid border-[#eaeaea] bg-white px-[24px] py-[12px]">
@@ -51,17 +99,53 @@ export default function PosHead() {
         {titleForPath(pathname)}
       </h1>
 
-      <div className="flex shrink-0 items-center gap-[12px]">
+      <div ref={ref} className="relative flex shrink-0 items-center gap-[12px]">
         <button
           type="button"
-          aria-label="Notifications"
-          className="flex size-[40px] cursor-pointer items-center justify-center overflow-clip rounded-[22px] border-[0.5px] border-solid border-[#eaeaea] bg-white px-[14px] py-[12px] text-[#f5b800] shadow-[0px_1px_2px_0px_rgba(82,88,102,0.06)] transition-colors hover:bg-[#fafafa]"
+          onClick={toggleBell}
+          aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+          aria-expanded={open}
+          className="relative flex size-[40px] cursor-pointer items-center justify-center overflow-visible rounded-[22px] border-[0.5px] border-solid border-[#eaeaea] bg-white px-[14px] py-[12px] text-[#f5b800] shadow-[0px_1px_2px_0px_rgba(82,88,102,0.06)] transition-colors hover:bg-[#fafafa]"
         >
           <BellIcon />
+          {unread > 0 && (
+            <span className="absolute -top-[2px] -right-[2px] flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#a02620] px-[4px] text-[10px] font-semibold text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
         </button>
+
         <span className="relative size-[40px] shrink-0 overflow-hidden rounded-full">
-          <Image src="/sidebar/nav-avatar.png" alt="Zayn Malik" fill sizes="40px" className="object-cover" />
+          <Image
+            src={session?.avatar || "/sidebar/nav-avatar.png"}
+            alt={session?.name || ""}
+            fill
+            sizes="40px"
+            className="object-cover"
+          />
         </span>
+
+        {open && (
+          <div className="absolute top-[52px] right-0 z-40 w-[320px] overflow-hidden rounded-[12px] border border-[#eaeaea] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
+            <p className="border-b border-[#f0f0f0] px-[16px] py-[12px] text-[13px] font-semibold text-[#1e1e1e]">
+              Notifications
+            </p>
+            {items.length === 0 ? (
+              <p className="px-[16px] py-[20px] text-center text-[13px] text-[#737373]">
+                Nothing yet.
+              </p>
+            ) : (
+              <ul className="max-h-[320px] overflow-y-auto">
+                {items.map((n) => (
+                  <li key={n.id} className="border-b border-[#f5f5f5] px-[16px] py-[10px] last:border-b-0">
+                    <p className="text-[13px] font-medium text-[#1e1e1e]">{n.title}</p>
+                    <p className="text-[12px] leading-[1.5] text-[#525252]">{n.message}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

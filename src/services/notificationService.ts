@@ -1,5 +1,5 @@
 import { NotificationItem } from "@/types/notifications";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 /** Shown when /notifications is unreachable, matching the rest of the app's fallback strategy. */
 const fallbackNotifications: NotificationItem[] = [
@@ -38,35 +38,22 @@ const fallbackNotifications: NotificationItem[] = [
   },
 ];
 
-interface Paginated<T> {
-  results?: T[];
-  data?: { results?: T[] } | T[];
-}
-
 export class NotificationService {
-  /** GET /notifications/ — newest first. */
+  /** Newest first. The API returns the standard paginated envelope. */
   static async list(limit = 10): Promise<NotificationItem[]> {
-    const res = await apiFetch<Paginated<NotificationItem> | NotificationItem[]>(
+    const res = await apiList<NotificationItem>(
       `/notifications/?limit=${limit}`,
       { method: "GET" },
-      fallbackNotifications
+      { data: fallbackNotifications, total: fallbackNotifications.length }
     );
-
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res.results)) return res.results;
-    if (Array.isArray(res.data)) return res.data;
-    if (res.data && Array.isArray(res.data.results)) return res.data.results;
-    return fallbackNotifications;
+    return res.data;
   }
 
-  /** GET /notifications/unread-count/ */
   static async unreadCount(): Promise<number> {
-    const res = await apiFetch<{ data?: { count?: number }; count?: number }>(
-      "/notifications/unread-count/",
-      { method: "GET" },
-      { count: fallbackNotifications.filter((n) => !n.isRead).length }
-    );
-    return res?.data?.count ?? res?.count ?? 0;
+    const res = await apiFetch<{ count?: number }>("/notifications/unread-count/", {
+      method: "GET",
+    });
+    return Number(res?.count ?? 0);
   }
 
   /** POST /notifications/mark-read/ */

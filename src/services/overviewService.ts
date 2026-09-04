@@ -1,38 +1,54 @@
 import { SalesOverviewItem, OrderListItem, CustomerListItem } from "@/types/overview";
-import { mockSalesOverviewList, mockOrderList, mockCustomerList } from "@/lib/mock-overview-data";
-import { apiFetch } from "./apiClient";
+import { apiList } from "./apiClient";
+import {
+  toCustomerListItem,
+  toOrderListItem,
+  toSalesOverviewItem,
+} from "./mappers/overview";
+
+/**
+ * The dashboard's pop-out panels.
+ *
+ * Each one reads a real resource list. There is no `/ceo-overview/...` on the
+ * server and there does not need to be — a panel showing recent sales wants
+ * the sales list, not a second endpoint returning the same rows under another
+ * name.
+ *
+ * A modest page size on purpose: these are glance panels, not reports.
+ */
+
+const PANEL_SIZE = 25;
 
 export class OverviewService {
-  /**
-   * Fetch CEO Overview sales list
-   */
+  /** Recent sales, newest first. */
   static async getSalesOverview(): Promise<SalesOverviewItem[]> {
-    return apiFetch<SalesOverviewItem[]>(
-      "/ceo-overview/sales",
+    const res = await apiList<SalesOverviewItem>(
+      `/sales/?limit=${PANEL_SIZE}`,
       { method: "GET" },
-      mockSalesOverviewList
+      undefined,
+      toSalesOverviewItem
     );
+    return res.data;
   }
 
-  /**
-   * Fetch CEO Overview orders list
-   */
+  /** Purchase orders — what the "Total Orders" card counts. */
   static async getOrders(): Promise<OrderListItem[]> {
-    return apiFetch<OrderListItem[]>(
-      "/ceo-overview/orders",
+    const res = await apiList<OrderListItem>(
+      `/purchases/?limit=${PANEL_SIZE}`,
       { method: "GET" },
-      mockOrderList
+      undefined,
+      toOrderListItem
     );
+    return res.data;
   }
 
-  /**
-   * Fetch CEO Overview customers list
-   */
   static async getCustomers(): Promise<CustomerListItem[]> {
-    return apiFetch<CustomerListItem[]>(
-      "/ceo-overview/customers",
+    const res = await apiList<CustomerListItem>(
+      `/customers/?limit=${PANEL_SIZE}`,
       { method: "GET" },
-      mockCustomerList
+      undefined,
+      toCustomerListItem
     );
+    return res.data;
   }
 }
