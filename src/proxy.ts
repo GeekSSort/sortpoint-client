@@ -41,12 +41,22 @@ const PUBLIC_PATHS = [
   "/accept-invitation",
 ];
 
+/**
+ * Outside the guard altogether: not an auth page, so a signed-in visitor must
+ * not be bounced away from it either. It renders components against no data.
+ */
+const UNGUARDED = ["/ds-preview"];
+
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  if (UNGUARDED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return NextResponse.next();
+  }
   const signedIn = request.cookies.get(SESSION_COOKIE)?.value === "1";
 
   // Signed in and heading for the login page — send them where they meant to go.

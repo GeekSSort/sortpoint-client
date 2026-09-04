@@ -57,7 +57,7 @@ test("Sidebar — submenu expanded", async ({ page }) => {
   await settle(page);
   // A section header is a button that expands its own submenu, not a link —
   // it navigates nowhere, it reveals the routes underneath it.
-  await page.getByRole("button", { name: "Sales & POS" }).click();
+  await page.getByRole("button", { name: "Sales", exact: true }).click();
   await expect(page.getByRole("link", { name: "Return", exact: true })).toBeVisible();
 });
 

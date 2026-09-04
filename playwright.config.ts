@@ -19,6 +19,17 @@ export default defineConfig({
 
   use: {
     baseURL,
+    // Signed in. The route guard sends an anonymous visitor to /login, so
+    // without this every test asserting on /dashboard measures the login page.
+    // These cookies carry no token — the guard is a signpost, and nothing here
+    // reaches the API.
+    storageState: {
+      cookies: [
+        { name: "sp_session", value: "1", domain: "localhost", path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" as const },
+        { name: "sp_scope", value: "full", domain: "localhost", path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" as const },
+      ],
+      origins: [],
+    },
     trace: "on-first-retry",
     // Match the Figma frame height so the sidebar renders full-length.
     viewport: { width: 1440, height: 1078 },
