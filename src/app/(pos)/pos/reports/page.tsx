@@ -221,7 +221,7 @@ export default function PosReportsPage() {
 
         <div className="hidden px-[16px] pt-[16px] md:block">
           <div className="overflow-x-auto">
-            <div className="min-w-[1080px]">
+            <div className="min-w-[1140px]">
               <div className={`grid ${GRID} items-start overflow-clip rounded-[6px] shadow-[inset_0_0_0_1px_#eaeaea]`}>
                 {["Customer ID", "Customer", "Phone", "Email", "Type", "Total Spent", "Due"].map((h) => (
                   <div key={h} className={`${CELL} h-[40px] bg-white`}>

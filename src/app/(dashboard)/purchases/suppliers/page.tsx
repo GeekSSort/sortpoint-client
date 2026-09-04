@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { SupplierRecord } from "@/types/suppliers";
 import { SupplierService } from "@/services";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import TablePagination from "@/components/shared/TablePagination";
+import Avatar from "@/components/shared/Avatar";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
 /**
@@ -210,7 +210,7 @@ export default function SuppliersPage() {
       <div className="w-full overflow-hidden rounded-[12px] bg-white shadow-[inset_0_0_0_1px_#eaeaea]">
         <div className="hidden px-[16px] pt-[16px] md:block">
           <div className="overflow-x-auto">
-            <div className="min-w-[1120px]">
+            <div className="min-w-[1145px]">
               <div className={`grid ${GRID} items-start overflow-clip rounded-[6px] shadow-[inset_0_0_0_1px_#eaeaea]`}>
                 <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>#</span></div>
                 <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Supplier Name</span></div>
@@ -249,9 +249,7 @@ export default function SuppliersPage() {
                   >
                     <div className={CELL}><span className={`${TEXT} truncate`}>{s.index}</span></div>
                     <div className={`${CELL} gap-[8px]`}>
-                      <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                        <Image src={s.avatar} alt="" fill sizes="28px" className="object-cover" />
-                      </span>
+                      <Avatar name={s.name} src={s.avatar} />
                       <span className={`${TEXT} truncate !text-[#1e1e1e]`}>{s.name}</span>
                     </div>
                     <div className={CELL}><span className={`${TEXT} truncate`}>{s.phone}</span></div>
@@ -294,9 +292,7 @@ export default function SuppliersPage() {
             >
               <div className="flex items-start justify-between gap-[10px]">
                 <div className="flex min-w-0 items-center gap-[8px]">
-                  <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                    <Image src={s.avatar} alt="" fill sizes="28px" className="object-cover" />
-                  </span>
+                  <Avatar name={s.name} src={s.avatar} />
                   <div className="min-w-0">
                     <p className={`${TEXT} truncate !text-[#1e1e1e]`}>{s.name}</p>
                     <p className="mt-[2px] truncate text-[12px] tracking-[-0.24px] text-[#525252]">{s.phone}</p>
@@ -358,9 +354,7 @@ export default function SuppliersPage() {
         {detailOf && (
           <div className="flex flex-col gap-[16px]">
             <div className="flex items-center gap-[12px]">
-              <span className="relative size-[48px] shrink-0 overflow-hidden rounded-[10px] border border-solid border-[#eaeaea]">
-                <Image src={detailOf.avatar} alt="" fill sizes="48px" className="object-cover" />
-              </span>
+              <Avatar name={detailOf.name} src={detailOf.avatar} size={48} radius={10} />
               <div className="min-w-0">
                 <p className="truncate text-[16px] font-medium text-[#1e1e1e]">{detailOf.name}</p>
                 <p className="truncate text-[13px] text-[#525252]">{detailOf.mail}</p>

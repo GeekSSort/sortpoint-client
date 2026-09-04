@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { PurchaseRecord } from "@/types/purchases";
 import { PurchaseService } from "@/services";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import TablePagination from "@/components/shared/TablePagination";
+import Avatar from "@/components/shared/Avatar";
 import DateField from "@/components/shared/DateField";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/shared/Modal";
 import { matchesDay } from "@/lib/dateFilter";
@@ -119,7 +119,7 @@ export default function PurchasesPage() {
       <div className="w-full overflow-hidden rounded-[12px] bg-white shadow-[inset_0_0_0_1px_#eaeaea]">
         <div className="hidden px-[16px] pt-[16px] md:block">
           <div className="overflow-x-auto">
-            <div className="min-w-[1050px]">
+            <div className="min-w-[1128px]">
               <div className={`grid ${GRID} items-start overflow-clip rounded-[6px] shadow-[inset_0_0_0_1px_#eaeaea]`}>
                 <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Purchase ID</span></div>
                 <div className={`${CELL} h-[40px] bg-white`}><span className={`${HEAD} whitespace-nowrap`}>Supplier</span></div>
@@ -156,9 +156,7 @@ export default function PurchasesPage() {
                     <div className={CELL}><span className={`${TEXT} truncate`}>{r.purchaseId}</span></div>
                     {/* 28px avatar, 8px from the name — 59:15334 */}
                     <div className={`${CELL} gap-[8px]`}>
-                      <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                        <Image src={r.supplier.avatar} alt="" fill sizes="28px" className="object-cover" />
-                      </span>
+                      <Avatar name={r.supplier.name} src={r.supplier.avatar} />
                       <span className={`${TEXT} truncate`}>{r.supplier.name}</span>
                     </div>
                     <div className={CELL}><span className={`${TEXT} truncate`}>{r.purchaseDate}</span></div>
@@ -209,9 +207,7 @@ export default function PurchasesPage() {
             >
               <div className="flex items-start justify-between gap-[10px]">
                 <div className="flex min-w-0 items-center gap-[8px]">
-                  <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                    <Image src={r.supplier.avatar} alt="" fill sizes="28px" className="object-cover" />
-                  </span>
+                  <Avatar name={r.supplier.name} src={r.supplier.avatar} />
                   <div className="min-w-0">
                     <p className={`${TEXT} truncate !text-[#1e1e1e]`}>{r.supplier.name}</p>
                     <p className="mt-[2px] truncate text-[12px] tracking-[-0.24px] text-[#525252]">
@@ -278,9 +274,7 @@ export default function PurchasesPage() {
         {detailOf && (
           <div className="flex flex-col gap-[16px]">
             <div className="flex items-center gap-[12px]">
-              <span className="relative size-[48px] shrink-0 overflow-hidden rounded-[10px] border border-solid border-[#eaeaea]">
-                <Image src={detailOf.supplier.avatar} alt="" fill sizes="48px" className="object-cover" />
-              </span>
+              <Avatar name={detailOf.supplier.name} src={detailOf.supplier.avatar} size={48} radius={10} />
               <div className="min-w-0">
                 <p className="truncate text-[16px] font-medium text-[#1e1e1e]">{detailOf.supplier.name}</p>
                 <p className="truncate text-[13px] text-[#525252]">{detailOf.purchaseId}</p>
