@@ -1,6 +1,6 @@
 import { CustomerRecord, CustomerQueryFilter, CreateCustomerPayload } from "@/types/customer";
 import { initialCustomersData } from "@/lib/services/customer.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export class CustomerService {
   /**
@@ -38,8 +38,8 @@ export class CustomerService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: CustomerRecord[]; total: number }>(
-      `/customers${qs}`,
+    return apiList<CustomerRecord>(
+      `/customers/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -64,7 +64,7 @@ export class CustomerService {
     };
 
     return apiFetch<CustomerRecord>(
-      "/customers",
+      "/customers/",
       {
         method: "POST",
         body: JSON.stringify(payload),

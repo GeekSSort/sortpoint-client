@@ -1,6 +1,6 @@
 import { TransferRecord, TransferQueryFilter } from "@/types/transfers";
 import { initialTransfersData } from "@/lib/services/transfers.service";
-import { apiFetch } from "./apiClient";
+import { apiList } from "./apiClient";
 
 export class TransferService {
   /**
@@ -35,8 +35,8 @@ export class TransferService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: TransferRecord[]; total: number }>(
-      `/inventory/transfers${qs}`,
+    return apiList<TransferRecord>(
+      `/inventory/transfers/${qs}`,
       { method: "GET" },
       fallback
     );

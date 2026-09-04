@@ -1,6 +1,6 @@
 import { SystemUserRecord, UserQueryFilter, CreateUserPayload } from "@/types/roles";
 import { initialSystemUsersData } from "@/lib/services/roles.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export class RoleService {
   /**
@@ -39,8 +39,8 @@ export class RoleService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: SystemUserRecord[]; total: number }>(
-      `/users${qs}`,
+    return apiList<SystemUserRecord>(
+      `/users/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -63,7 +63,7 @@ export class RoleService {
     };
 
     return apiFetch<SystemUserRecord>(
-      "/users",
+      "/users/",
       {
         method: "POST",
         body: JSON.stringify(payload),

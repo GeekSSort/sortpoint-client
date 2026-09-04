@@ -1,6 +1,6 @@
 import { StockItem, StockQueryFilter } from "@/types/stock";
 import { initialStockData } from "@/lib/services/stock.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export interface AddStockPayload {
   productName: string;
@@ -44,8 +44,8 @@ export class StockService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: StockItem[]; total: number }>(
-      `/inventory/stock${qs}`,
+    return apiList<StockItem>(
+      `/inventory/stock/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -68,7 +68,7 @@ export class StockService {
     };
 
     return apiFetch<StockItem>(
-      "/inventory/stock/add",
+      "/inventory/adjustments/",
       {
         method: "POST",
         body: JSON.stringify(payload),

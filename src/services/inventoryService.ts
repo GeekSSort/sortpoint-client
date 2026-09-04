@@ -1,6 +1,6 @@
 import { InventoryProduct, InventoryQueryFilter } from "@/types/inventory";
 import { initialInventoryProducts } from "@/lib/services/inventory.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export interface CreateProductPayload {
   name: string;
@@ -51,8 +51,8 @@ export class InventoryService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: InventoryProduct[]; total: number }>(
-      `/inventory/products${qs}`,
+    return apiList<InventoryProduct>(
+      `/products/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -77,7 +77,7 @@ export class InventoryService {
     };
 
     return apiFetch<InventoryProduct>(
-      "/inventory/products",
+      "/products/",
       {
         method: "POST",
         body: JSON.stringify(payload),

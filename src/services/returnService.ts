@@ -1,6 +1,6 @@
 import { ReturnRecord, ReturnQueryFilter, CreateReturnPayload } from "@/types/returns";
 import { initialReturnsData } from "@/lib/services/returns.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export class ReturnService {
   /**
@@ -34,7 +34,7 @@ export class ReturnService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: ReturnRecord[]; total: number }>(
+    return apiList<ReturnRecord>(
       `/returns${qs}`,
       { method: "GET" },
       fallback

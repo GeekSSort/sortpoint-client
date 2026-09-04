@@ -1,6 +1,6 @@
 import { PayrollRecord, PayrollQueryFilter } from "@/types/payroll";
 import { initialPayrollData } from "@/lib/services/payroll.service";
-import { apiFetch } from "./apiClient";
+import { apiList } from "./apiClient";
 
 export class PayrollService {
   /**
@@ -33,8 +33,8 @@ export class PayrollService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: PayrollRecord[]; total: number }>(
-      `/hrm/payroll${qs}`,
+    return apiList<PayrollRecord>(
+      `/hrm/payroll-runs/${qs}`,
       { method: "GET" },
       fallback
     );

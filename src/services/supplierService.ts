@@ -1,6 +1,6 @@
 import { SupplierRecord, SupplierQueryFilter, CreateSupplierPayload } from "@/types/suppliers";
 import { initialSuppliersData } from "@/lib/services/suppliers.service";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiList } from "./apiClient";
 
 export class SupplierService {
   /**
@@ -34,8 +34,8 @@ export class SupplierService {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiFetch<{ data: SupplierRecord[]; total: number }>(
-      `/purchases/suppliers${qs}`,
+    return apiList<SupplierRecord>(
+      `/suppliers/${qs}`,
       { method: "GET" },
       fallback
     );
@@ -67,7 +67,7 @@ export class SupplierService {
     };
 
     return apiFetch<SupplierRecord>(
-      "/purchases/suppliers",
+      "/suppliers/",
       {
         method: "POST",
         body: JSON.stringify(payload),
