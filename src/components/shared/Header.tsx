@@ -80,6 +80,20 @@ function subtitleForPath(pathname: string): string | null {
     return "Add a new supplier and manage their business, contact, and payment information.";
   if (pathname.startsWith("/purchases/suppliers"))
     return "Manage suppliers, purchase history, outstanding balances, and contact information from one place.";
+  if (pathname.startsWith("/roles-permissions/add"))
+    return "Create a new user account and assign their role, branch, and system access.";
+  if (pathname.startsWith("/roles-permissions"))
+    return "Manage system users, roles, branch access, and account status.";
+  if (pathname.startsWith("/hrm/payroll"))
+    return "Manage employee salaries, allowances, deductions, attendance, overtime, and payment status from one place.";
+  if (pathname.startsWith("/hrm/add"))
+    return "Add a new employee with their department, designation, and contact information.";
+  if (pathname.startsWith("/hrm"))
+    return "Manage employee records, attendance, check-in/out, and employee status from one place.";
+  if (pathname.startsWith("/hrm/add"))
+    return "Add a new employee with their department, designation, and contact information.";
+  if (pathname.startsWith("/hrm"))
+    return "Manage employee records, attendance, check-in/out, and employee status from one place.";
   if (pathname === "/inventory")
     return "Manage, organize, and monitor all products across your inventory.";
   return null;
@@ -100,8 +114,11 @@ function titleForPath(pathname: string): string {
   if (pathname.startsWith("/purchases/suppliers/add")) return "Add Supplier";
   if (pathname.startsWith("/purchases/suppliers")) return "Suppliers";
   if (pathname.startsWith("/purchases")) return "Purchase History";
-  if (pathname.startsWith("/hrm")) return "HRM";
-  if (pathname.startsWith("/roles-permissions")) return "Roles & Permissions";
+  if (pathname.startsWith("/hrm/payroll")) return "Payroll";
+  if (pathname.startsWith("/hrm/add")) return "Add Employees";
+  if (pathname.startsWith("/hrm")) return "All Employees";
+  if (pathname.startsWith("/roles-permissions/add")) return "Add User";
+  if (pathname.startsWith("/roles-permissions")) return "User List";
   if (pathname.startsWith("/settings")) return "Settings";
   if (pathname.startsWith("/ceo-overview")) return "CEO Overview";
   return "Dashboard";
