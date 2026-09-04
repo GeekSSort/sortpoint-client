@@ -243,7 +243,7 @@ export default function AddProductPage() {
               {form.image ? (
                 <>
                   <span className="relative size-[32px] shrink-0 overflow-hidden rounded-[6px]">
-                    <Image src={form.image} alt="" fill sizes="32px" className="object-cover" unoptimized />
+                    <Image src={form.image || "/placeholder-product.svg"} alt="" fill sizes="32px" className="object-cover" unoptimized />
                   </span>
                   <span className="text-[16px] leading-[24px] text-[#525252]">Image selected</span>
                 </>

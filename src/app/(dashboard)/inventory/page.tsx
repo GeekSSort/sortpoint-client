@@ -163,7 +163,7 @@ export default function InventoryPage() {
                     {/* 28px thumbnail, 8px from the name — 57:12649 */}
                     <div className={`${CELL} gap-[8px]`}>
                       <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                        <Image src={r.image} alt="" fill sizes="28px" className="object-cover" />
+                        <Image src={r.image || "/placeholder-product.svg"} alt="" fill sizes="28px" className="object-cover" />
                       </span>
                       <span className={`${TEXT} truncate`}>{r.name}</span>
                     </div>
@@ -199,7 +199,7 @@ export default function InventoryPage() {
               <div className="flex items-start justify-between gap-[10px]">
                 <div className="flex min-w-0 items-center gap-[8px]">
                   <span className="relative size-[28px] shrink-0 overflow-hidden rounded-[6px]">
-                    <Image src={r.image} alt="" fill sizes="28px" className="object-cover" />
+                    <Image src={r.image || "/placeholder-product.svg"} alt="" fill sizes="28px" className="object-cover" />
                   </span>
                   <div className="min-w-0">
                     <p className={`${TEXT} truncate !text-[#1e1e1e]`}>{r.name}</p>
@@ -265,7 +265,7 @@ export default function InventoryPage() {
           <div className="flex flex-col gap-[16px]">
             <div className="flex items-center gap-[12px]">
               <span className="relative size-[56px] shrink-0 overflow-hidden rounded-[10px] border border-solid border-[#eaeaea]">
-                <Image src={detailOf.image} alt="" fill sizes="56px" className="object-cover" />
+                <Image src={detailOf.image || "/placeholder-product.svg"} alt="" fill sizes="56px" className="object-cover" />
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[16px] font-medium text-[#1e1e1e]">{detailOf.name}</p>
@@ -387,7 +387,7 @@ export default function InventoryPage() {
           <div className="flex flex-col gap-[14px]">
             <div className="flex items-center gap-[12px]">
               <span className="relative size-[48px] shrink-0 overflow-hidden rounded-[10px] border border-solid border-[#eaeaea]">
-                <Image src={editOf.image} alt="" fill sizes="48px" className="object-cover" />
+                <Image src={editOf.image || "/placeholder-product.svg"} alt="" fill sizes="48px" className="object-cover" />
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[13px] text-[#525252]">{editOf.sku}</p>

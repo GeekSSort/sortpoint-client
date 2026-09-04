@@ -402,7 +402,7 @@ export default function CartPanel({
                     </div>
                   </div>
 
-                  <div className="mt-[6px]">
+                  <div className="no-scrollbar mt-[6px] max-h-[216px] overflow-y-auto">
                     {cart.length === 0 && (
                       <p className="py-[28px] text-center text-[14px] text-[#525252]">Cart is empty.</p>
                     )}
@@ -418,7 +418,7 @@ export default function CartPanel({
                         </div>
                         <div className="flex min-w-px flex-1 items-center gap-[6px] px-[10px]">
                           <span className="relative size-[24px] shrink-0 overflow-hidden rounded-[4px]">
-                            <Image src={item.product.image} alt="" fill sizes="24px" className="object-cover" />
+                            <Image src={item.product.image || "/placeholder-product.svg"} alt="" fill sizes="24px" className="object-cover" />
                           </span>
                           <span className="truncate text-[14px] leading-[24px] font-normal text-[#525252]">
                             {item.product.name}
