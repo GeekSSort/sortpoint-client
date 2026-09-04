@@ -14,14 +14,20 @@ export class DashboardService {
     // The endpoint returns figures only — five summaries, no person and no
     // metric cards. `toDashboardResponse` turns them into what the screen
     // renders, and the greeting comes from whoever is signed in.
-    const [payload, user] = await Promise.all([
+    const [payload, user, sales] = await Promise.all([
       apiFetch<any>("/dashboard/", { method: "GET" }, null),
       AuthService.getCurrentUser().catch(() => ({ greeting: "there", email: "" })),
+      // Recent Activities is the sales list; the server has no feed of its own.
+      apiFetch<any>("/sales/?limit=8", { method: "GET" }, { data: [] }).catch(() => ({ data: [] })),
     ]);
 
     if (!payload) return initialDashboardData;
     // The greeting, not the full name — the heading reads "Welcome, ___".
-    return toDashboardResponse(payload, { name: user.greeting, email: user.email });
+    return toDashboardResponse(
+      payload,
+      { name: user.greeting, email: user.email },
+      Array.isArray(sales) ? sales : sales?.data || []
+    );
   }
 
   /**

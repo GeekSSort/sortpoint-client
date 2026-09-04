@@ -2,6 +2,7 @@ import {
   DashboardResponse,
   MetricCardData,
   ProfitLossData,
+  RecentActivityItem,
   SalesDataPoint,
 } from "@/types/dashboard";
 import { toAmount } from "../apiClient";
@@ -12,8 +13,9 @@ import { formatCount, formatMoney, formatMoneyCompact } from "@/lib/format";
  * summaries and no person, so `user` comes from whoever is signed in and the
  * metric cards are built from the summaries.
  *
- * `recentActivities` stays empty: the server has no activity feed, and sales
- * under that name would be a different list wearing its label.
+ * `recentActivities` is the recent sales list, labelled as sales. The server
+ * has no activity feed of its own, so the row says what it actually is rather
+ * than dressing a sale up as something else.
  */
 
 function metrics(sales: any, purchases: any, pnl: any): MetricCardData[] {
@@ -61,9 +63,41 @@ function profitLoss(pnl: any): ProfitLossData {
   };
 }
 
+const WHEN = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** A sale a person made -> a line in Recent Activities. */
+function activities(sales: any[]): RecentActivityItem[] {
+  return (sales || []).map((row: any) => {
+    const amount = toAmount(row?.grandTotal ?? row?.grand_total);
+    const due = toAmount(row?.dueAmount ?? row?.due_amount);
+    const at = new Date(String(row?.saleDate ?? row?.sale_date ?? ""));
+    return {
+      id: String(row?.id ?? ""),
+      activity: "Sale",
+      reference: String(row?.invoiceNumber ?? row?.invoice_number ?? "—"),
+      dateTime: Number.isNaN(at.getTime()) ? "—" : WHEN.format(at),
+      amount,
+      amountFormatted: formatMoney(amount),
+      // Paid in full is settled; anything left owing is still open.
+      status: String(row?.status || "").toUpperCase() === "CANCELLED"
+        ? "Cancelled"
+        : due > 0
+          ? "Pending"
+          : "Delivered",
+    };
+  });
+}
+
 export function toDashboardResponse(
   payload: any,
-  user: { name: string; email: string }
+  user: { name: string; email: string },
+  recentSales: any[] = []
 ): DashboardResponse {
   const p = payload || {};
   return {
@@ -71,6 +105,6 @@ export function toDashboardResponse(
     metrics: metrics(p.salesSummary, p.purchaseSummary, p.financePnl),
     salesSummary: series(p.salesByDay),
     profitLoss: profitLoss(p.financePnl),
-    recentActivities: [],
+    recentActivities: activities(recentSales),
   };
 }
