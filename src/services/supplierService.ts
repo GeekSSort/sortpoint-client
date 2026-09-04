@@ -1,6 +1,7 @@
 import { SupplierRecord, SupplierQueryFilter, CreateSupplierPayload } from "@/types/suppliers";
 import { initialSuppliersData } from "@/lib/services/suppliers.service";
 import { apiFetch, apiList } from "./apiClient";
+import { purchaseTotals, toSupplierRecord } from "./mappers/supplier";
 
 export class SupplierService {
   /**
@@ -31,14 +32,31 @@ export class SupplierService {
     if (params?.search) searchParams.set("search", params.search);
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
+    // These pages filter and page in the browser, so ask for the whole
+    // list rather than the API's default 20 — otherwise the pager counts
+    // one page and calls it the total.
+    searchParams.set("limit", String(params?.limit ?? 500));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiList<SupplierRecord>(
-      `/suppliers/${qs}`,
-      { method: "GET" },
-      fallback
-    );
+    // Two resources: the supplier, and the purchases that give it a total and
+    // a last-purchase date. The table shows them as one row.
+    const [rows, purchases] = await Promise.all([
+      apiList<any>(`/suppliers/${qs}`, { method: "GET" }, fallback, (r) => r),
+      apiList<any>("/purchases/?limit=500", { method: "GET" }, { data: [], total: 0 }, (r) => r).catch(
+        () => ({ data: [] as any[] })
+      ),
+    ]);
+
+    // Already-mapped fallback rows carry `mail`; nothing to map.
+    if (rows.data[0]?.mail !== undefined) return rows as { data: SupplierRecord[]; total: number };
+
+    const totals = purchaseTotals(purchases.data);
+    return {
+      data: rows.data.map((row: any, i: number) =>
+        toSupplierRecord(row, i + 1, totals.get(String(row?.id)))
+      ),
+      total: rows.total,
+    };
   }
 
   /**

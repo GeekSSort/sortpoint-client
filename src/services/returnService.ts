@@ -1,6 +1,7 @@
 import { ReturnRecord, ReturnQueryFilter, CreateReturnPayload } from "@/types/returns";
 import { initialReturnsData } from "@/lib/services/returns.service";
 import { apiFetch, apiList } from "./apiClient";
+import { toReturnRecord } from "./mappers/returns";
 
 export class ReturnService {
   /**
@@ -31,13 +32,17 @@ export class ReturnService {
     if (params?.search) searchParams.set("search", params.search);
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
+    // These pages filter and page in the browser, so ask for the whole
+    // list rather than the API's default 20 — otherwise the pager counts
+    // one page and calls it the total.
+    searchParams.set("limit", String(params?.limit ?? 500));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
     return apiList<ReturnRecord>(
-      `/returns${qs}`,
+      `/returns/${qs}`,
       { method: "GET" },
-      fallback
+      fallback,
+      (row: any) => (row?.returnNo !== undefined ? row : toReturnRecord(row))
     );
   }
 

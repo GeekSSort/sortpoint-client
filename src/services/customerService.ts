@@ -1,6 +1,7 @@
 import { CustomerRecord, CustomerQueryFilter, CreateCustomerPayload } from "@/types/customer";
 import { initialCustomersData } from "@/lib/services/customer.service";
 import { apiFetch, apiList } from "./apiClient";
+import { salesTotals, toCustomerRecord } from "./mappers/customer";
 
 export class CustomerService {
   /**
@@ -35,14 +36,31 @@ export class CustomerService {
     if (params?.type) searchParams.set("type", params.type);
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
+    // These pages filter and page in the browser, so ask for the whole
+    // list rather than the API's default 20 — otherwise the pager counts
+    // one page and calls it the total.
+    searchParams.set("limit", String(params?.limit ?? 500));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return apiList<CustomerRecord>(
-      `/customers/${qs}`,
-      { method: "GET" },
-      fallback
-    );
+    // Two resources: the customer, and the sales that give them an order
+    // count and a lifetime total.
+    const [rows, sales] = await Promise.all([
+      apiList<any>(`/customers/${qs}`, { method: "GET" }, fallback, (r) => r),
+      apiList<any>("/sales/?limit=500", { method: "GET" }, { data: [], total: 0 }, (r) => r).catch(
+        () => ({ data: [] as any[] })
+      ),
+    ]);
+
+    // Already-mapped fallback rows carry `customerId`; nothing to map.
+    if (rows.data[0]?.customerId !== undefined) {
+      return rows as { data: CustomerRecord[]; total: number };
+    }
+
+    const totals = salesTotals(sales.data);
+    return {
+      data: rows.data.map((row: any) => toCustomerRecord(row, totals.get(String(row?.id)))),
+      total: rows.total,
+    };
   }
 
   /**

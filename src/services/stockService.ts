@@ -1,6 +1,7 @@
 import { StockItem, StockQueryFilter } from "@/types/stock";
 import { initialStockData } from "@/lib/services/stock.service";
 import { apiFetch, apiList } from "./apiClient";
+import { toStockItem } from "./mappers/inventory";
 
 export interface AddStockPayload {
   productName: string;
@@ -41,13 +42,17 @@ export class StockService {
     if (params?.warehouse) searchParams.set("warehouse", params.warehouse);
     if (params?.status) searchParams.set("status", params.status);
     if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
+    // These pages filter and page in the browser, so ask for the whole
+    // list rather than the API's default 20 — otherwise the pager counts
+    // one page and calls it the total.
+    searchParams.set("limit", String(params?.limit ?? 500));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
     return apiList<StockItem>(
       `/inventory/stock/${qs}`,
       { method: "GET" },
-      fallback
+      fallback,
+      (row: any) => (row?.lowStock !== undefined ? row : toStockItem(row))
     );
   }
 

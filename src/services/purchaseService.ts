@@ -1,6 +1,7 @@
 import { PurchaseRecord, PurchaseQueryFilter } from "@/types/purchases";
 import { initialPurchasesData } from "@/lib/services/purchases.service";
 import { apiList } from "./apiClient";
+import { toPurchaseRecord } from "./mappers/purchase";
 
 export class PurchaseService {
   /**
@@ -36,13 +37,19 @@ export class PurchaseService {
     if (params?.status) searchParams.set("status", params.status);
     if (params?.paymentStatus) searchParams.set("paymentStatus", params.paymentStatus);
     if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
+    // These pages filter and page in the browser, so ask for the whole
+    // list rather than the API's default 20 — otherwise the pager counts
+    // one page and calls it the total.
+    searchParams.set("limit", String(params?.limit ?? 500));
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
     return apiList<PurchaseRecord>(
       `/purchases/${qs}`,
       { method: "GET" },
-      fallback
+      fallback,
+      // Unmapped, the supplier arrives as an id under a key the table reads as
+      // an object, and every column but the date comes out blank.
+      (row: any) => (row?.supplier?.name !== undefined ? row : toPurchaseRecord(row))
     );
   }
 }

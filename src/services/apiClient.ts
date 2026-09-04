@@ -389,3 +389,31 @@ function resolveFallback<T>(fallbackData?: T | (() => Promise<T> | T)): Promise<
   }
   return Promise.resolve(fallbackData as T);
 }
+
+
+/**
+ * Every page of a list, up to a sane ceiling.
+ *
+ * The API caps `limit` at 200, so a single call cannot cover a table that
+ * joins against the whole collection — asking for 500 stock rows returns 200
+ * and the other SKUs silently read as zero.
+ */
+export async function apiListAll<T>(
+  endpoint: string,
+  mapItem?: (row: any) => T,
+  maxPages = 6
+): Promise<T[]> {
+  const joiner = endpoint.includes("?") ? "&" : "?";
+  const out: T[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const res = await apiList<T>(
+      `${endpoint}${joiner}limit=200&page=${page}`,
+      { method: "GET" },
+      { data: [], total: 0 },
+      mapItem
+    );
+    out.push(...res.data);
+    if (out.length >= res.total || res.data.length === 0) break;
+  }
+  return out;
+}

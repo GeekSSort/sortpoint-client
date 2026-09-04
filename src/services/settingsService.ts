@@ -1,5 +1,6 @@
 import { CompanyProfile } from "@/types/settings";
 import { initialCompanyProfile } from "@/lib/services/settings.service";
+import { toCompanyProfile, toOrganizationPayload, organizationId } from "./mappers/settings";
 import { apiFetch } from "./apiClient";
 
 export class SettingsService {
@@ -7,26 +8,24 @@ export class SettingsService {
    * Fetch company profile settings
    */
   static async getCompanyProfile(): Promise<CompanyProfile> {
-    return apiFetch<CompanyProfile>(
-      "/organizations/",
-      { method: "GET" },
-      initialCompanyProfile
-    );
+    // A list of one, with organization field names. Mapped, so every input
+    // gets a string and stays controlled.
+    const rows = await apiFetch<any>("/organizations/", { method: "GET" }, null);
+    return toCompanyProfile(rows, initialCompanyProfile);
   }
 
   /**
    * Update company profile settings
    */
   static async updateCompanyProfile(payload: Partial<CompanyProfile>): Promise<CompanyProfile> {
-    const fallback = { ...initialCompanyProfile, ...payload };
+    const rows = await apiFetch<any>("/organizations/", { method: "GET" }, null);
+    const id = organizationId(rows);
+    if (!id) return { ...initialCompanyProfile, ...payload };
 
-    return apiFetch<CompanyProfile>(
-      "/organizations/",
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      },
-      fallback
-    );
+    const saved = await apiFetch<any>(`/organizations/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(toOrganizationPayload(payload)),
+    });
+    return toCompanyProfile(saved, { ...initialCompanyProfile, ...payload } as CompanyProfile);
   }
 }
