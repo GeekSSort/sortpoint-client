@@ -15,15 +15,14 @@ import { ProductItem } from "@/types/pos";
 import { CustomerRecord } from "@/types/customer";
 
 /**
- * Figma: SORTPoint — POS Reports 247:7564.
+ * POS Reports — Figma 247:7564.
  *
- * Four branch figures, then Sales Summary beside Profit & Loss, then the top
- * sellers, then the recent customers table. The charts and the KPI row are the
- * dashboard's own components — same design, same code, so a fix to either lands
- * in both places.
+ * Four branch figures, Sales Summary beside Profit & Loss, top sellers, then
+ * recent customers. The charts and the figures are the dashboard's own
+ * components, so a fix to either shows up in both places.
  *
- * The frame's head reads "Products", which is a copy slip in the file: the rail
- * highlights Reports and the route is Reports, so PosHead titles it Reports.
+ * The frame says "Products" in its heading, which is a mistake in the file: the menu
+ * and the route both say Reports, so the page does too.
  */
 
 const TYPE_TONE: Record<CustomerRecord["type"], Tone> = {
@@ -38,7 +37,7 @@ const CELL = "flex min-w-0 items-center p-[12px]";
 const HEAD = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#1e1e1e]";
 const TEXT = "text-[14px] leading-[1.5] font-medium tracking-[-0.28px] text-[#525252]";
 
-/** The branch figures the design names, derived from the dashboard's own data. */
+/** The four branch figures the design asks for, taken from dashboard data. */
 function branchMetrics(d: DashboardResponse): MetricCardData[] {
   const revenue = d.profitLoss.totalRevenue;
   const expenses = d.profitLoss.totalExpenses;

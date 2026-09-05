@@ -8,14 +8,13 @@ import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/s
 import Link from "next/link";
 
 /**
- * Figma: SORTPoint — Recent Activities 30:16894.
+ * Recent Activities — Figma 30:16894.
  *
- * 1160x446: a 48px centred title, a 1128-wide table inset 16px (40px head with
- * its own 6px-radius outline, then 54px rows), and a 64px pagination bar.
- * Columns are three fluid (226 each at design width) then 150 / 170 / 130.
+ * A centred title over a table: 40px head, 54px rows, pager below. Three
+ * columns share the space; the last three are fixed at 150, 170 and 130.
  *
- * Below md the rows become stacked cards — a six-column table has nowhere to go
- * on a phone. No Figma frame for that; it's mine.
+ * Below md each row becomes a card, because six columns have nowhere to go on
+ * a phone. No Figma frame for that; it is our choice.
  */
 
 const STATUS: Record<ActivityStatus, { bg: string; fg: string }> = {

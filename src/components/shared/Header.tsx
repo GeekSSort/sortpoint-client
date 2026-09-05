@@ -11,17 +11,16 @@ import { NotificationItem } from "@/types/notifications";
 import { useSidebar } from "./SidebarContext";
 
 /**
- * Figma: SORTPoint — Head 30:15360.
+ * The top bar — Figma 30:15360.
  *
- * Reusable top bar: px-24 py-12, a 36px gold title on the left and a 12px-gap
- * pair of 40px controls on the right (notifications, avatar). The 67px height
- * comes from the title's line box, not a fixed value.
+ * A gold title on the left, notifications and the avatar on the right. Its
+ * 67px height comes from the title's line height, not a fixed number.
  *
- * Below lg it gains a hamburger for the off-canvas rail and the title steps
- * down in size — my own responsive behaviour, no Figma frame for it.
+ * Below lg it gains a menu button for the slide-out sidebar and the title gets
+ * smaller. There is no Figma frame for that; it is our choice.
  */
 
-/** Bell with its badge, node 30:15365. Both paths are flat #F5B800 in the file. */
+/** Bell and its badge, node 30:15365. */
 function BellIcon() {
   return (
     <svg
@@ -62,7 +61,7 @@ function MenuIcon() {
   );
 }
 
-/** Route -> the line that sits under the title. */
+/** Which line sits under the title, for each page. */
 function subtitleForPath(pathname: string): string | null {
   if (pathname.startsWith("/sales-pos/sales")) return "View & manage all sales, invoice or order";
   if (pathname.startsWith("/sales-pos/return")) return "View & manage all returns and refunds";
@@ -99,7 +98,7 @@ function subtitleForPath(pathname: string): string | null {
   return null;
 }
 
-/** Route -> title, matching the section names used in the sidebar. */
+/** The title for each page, using the sidebar's own names. */
 function titleForPath(pathname: string): string {
   if (pathname.startsWith("/pos")) return "POS";
   if (pathname.startsWith("/sales-pos/sales")) return "Sales";
@@ -134,9 +133,9 @@ function relativeTime(iso: string): string {
 }
 
 export interface HeaderProps {
-  /** Overrides the route-derived title. */
+  /** Use this title instead of the page's own. */
   title?: string;
-  /** Overrides the route-derived subtitle; null hides it. */
+  /** Use this line instead of the page's own. null hides it. */
   subtitle?: string | null;
   /** Shown in the profile menu. */
   user?: { name: string; email: string; avatar?: string };
@@ -155,7 +154,7 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
 
   const heading = title ?? titleForPath(pathname);
   const sub = subtitle !== undefined ? subtitle : subtitleForPath(pathname);
-  // The signed-in account, unless a caller passed one explicitly.
+  // The signed-in account, unless the caller passed one in.
   const profile = user ?? {
     name: session?.name ?? "",
     email: session?.email ?? "",

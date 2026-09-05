@@ -5,9 +5,8 @@ import { formatMoney } from "@/lib/format";
 /**
  * Purchase -> a row in the purchase history table.
  *
- * The rows were going to the table unmapped, so the supplier arrived as a bare
- * id under a key the table reads as an object — every name, amount and status
- * on the page was blank.
+ * Without this the supplier arrives as a bare id under a key the table reads
+ * as an object, and every name, amount and status on the page is blank.
  */
 
 const STATUS: Record<string, PurchaseRecord["status"]> = {

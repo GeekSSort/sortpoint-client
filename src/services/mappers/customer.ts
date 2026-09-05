@@ -5,12 +5,12 @@ import { formatMoney } from "@/lib/format";
 /**
  * Customer -> a row in the customers table.
  *
- * The API names the customer's code `code` and their debt `current_balance`;
- * the table asks for `customerId` and `dueAmount`. Unmapped, only the two
- * fields whose names collide (name, phone) ever showed.
+ * The names differ on each side: the API says `code` and `current_balance`,
+ * the table wants `customerId` and `dueAmount`. Without this only name and
+ * phone showed, because those two happen to match.
  *
- * Order count and total spent are not on the customer resource — they are
- * summed from `/sales/` by the caller, which already holds that list.
+ * Orders and total spent are not on the customer at all. The caller sums them
+ * from the sales list it already has.
  */
 
 const TYPE: Record<string, CustomerRecord["type"]> = {
@@ -43,7 +43,7 @@ export function toCustomerRecord(row: any, totals?: SalesTotals): CustomerRecord
   };
 }
 
-/** Sales summed per customer id, for the two columns they feed. */
+/** Sales added up per customer, for those two columns. */
 export function salesTotals(sales: any[]): Map<string, SalesTotals> {
   const out = new Map<string, SalesTotals>();
   for (const sale of sales || []) {

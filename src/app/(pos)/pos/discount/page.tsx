@@ -7,20 +7,18 @@ import { PosService } from "@/services";
 import TablePagination from "@/components/shared/TablePagination";
 
 /**
- * Figma: SORTPoint — POS Discount 247:13582.
+ * POS Discount — Figma 247:13582.
  *
- * The product wall with a discount chip: a 56px search, the category row at
- * 24px type, then a 6-up grid of 160-wide cards over the 565 pagination bar.
+ * The product grid again, six cards across: image, name, then the price
+ * beside the stock pill.
  *
- * A card is p-10 at radius 10 behind a 0.6px hairline: a 160x160 image at
- * radius 8, then the name, then the price beside the stock pill. A discounted
- * product gains a full-width #e8e8e8 chip naming the rate — which is what this
- * screen is for, so it doubles as the control that sets one.
+ * A discounted product gains a grey chip showing the rate. That chip is also
+ * the control that sets it, which is what this screen is for.
  */
 
 const CATEGORIES = ["All Categories", "Electronics", "Groceries", "Fashion", "Home & Living"] as const;
 
-/** Percent off per product. Local until the catalogue carries a discount field. */
+/** Percent off, per product. Kept here until the catalogue stores discounts. */
 const SEED: Record<string, number> = {};
 
 function SearchIcon() {

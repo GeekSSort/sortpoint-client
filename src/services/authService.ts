@@ -2,13 +2,13 @@ import { apiFetch, tokenStore, ApiError, resolveRealm } from "./apiClient";
 
 export interface UserSession {
   id: string;
-  /** Flat permission codes, as the server resolved them for this branch. */
+  /** Permission codes the server worked out for this branch. */
   permissions: string[];
-  /** The screen this person should land on, and be kept inside. */
+  /** Where this person lands, and stays. */
   home: "/pos" | "/dashboard";
   /** Full name where there is room for one. */
   name: string;
-  /** First name only — for "Welcome, ___". Never an email address. */
+  /** First name only, for "Welcome, ___". Never an email address. */
   greeting: string;
   email: string;
   avatar: string;
@@ -28,12 +28,11 @@ interface TokenPair {
 }
 
 /**
- * The console and a shop have SEPARATE sign-ins, and a token from one is
- * refused by the other. Which endpoints this page uses is decided by the
- * address it is open on — see `resolveRealm`.
+ * The console and a shop sign in separately, and a token from one is refused
+ * by the other. The page address decides which endpoints to use.
  *
- *   localhost:3500         → console  → /platform/auth/*
- *   rahman.localhost:3500  → Rahman's → /auth/*
+ *   localhost:3500         -> console, /platform/auth/*
+ *   rahman.localhost:3500  -> that shop, /auth/*
  */
 const ROUTES = {
   tenant: { login: "/auth/login", me: "/auth/me", logout: "/auth/logout" },
@@ -57,27 +56,20 @@ interface MeResponse {
 /**
  * Where this account belongs.
  *
- * Decided by PERMISSION, not by role name: a shop can rename "Cashier" to
- * anything, and the back office is gated on `dashboard.view` server-side
- * anyway. Somebody without it has no business on those screens — every panel
- * would come back empty or refused.
+ * Decided by permission, not role name: a shop can rename "Cashier" to
+ * anything. Without `dashboard.view` every back-office panel comes back
+ * empty, so the till is the right place to land.
  */
 export function homeFor(permissions: string[] | undefined): "/pos" | "/dashboard" {
   return permissions?.includes("dashboard.view") ? "/dashboard" : "/pos";
 }
 
 /**
- * What to call somebody in a greeting.
+ * What to call somebody in a greeting. Never their email address.
  *
- * Never the raw email address. "Welcome, owner@nusrat.test" reads like a
- * system message, not a greeting, and it puts an address on screen in an office
- * where other people can see it.
- *
- * In order of preference: their own first name, then the company's first word,
- * then the part of the address before the @. An account provisioned without a
- * name — which is every account created by `provision_tenant` without
- * `--owner-name` — falls to the company, so "Nusrat Traders" greets as
- * "Nusrat".
+ * First their own first name, then the company's first word, then the part
+ * before the @. Accounts created without a name fall back to the company, so
+ * "Nusrat Traders" greets as "Nusrat".
  */
 function greetingName(me: MeResponse): string {
   const full = (me.fullName || "").trim();
@@ -91,19 +83,17 @@ function greetingName(me: MeResponse): string {
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
-/** The full name where there is room for one — menus, profile, account lists. */
+/** The full name, where there is room: menus, profile, account lists. */
 function displayName(me: MeResponse): string {
   return (me.fullName || "").trim() || greetingName(me);
 }
 
 export class AuthService {
   /**
-   * Sign in.
+   * Sign in. Throws when the details are wrong.
    *
-   * THROWS when the credentials are wrong. That sounds obvious, but the old
-   * version returned a fake "Zayn Malik" session on every failure, so the login
-   * page redirected to the dashboard whatever you typed — which is why the app
-   * could be entered without an account.
+   * Worth saying, because the old version returned a fake session on failure
+   * and the login page went to the dashboard whatever you typed.
    */
   static async login(payload: LoginPayload): Promise<UserSession> {
     const password = payload.password || payload.pin || "";
@@ -115,8 +105,8 @@ export class AuthService {
         anonymous: true,
         body: JSON.stringify({ email: payload.email.trim(), password }),
       }
-      // No fallback on purpose. A login that cannot reach the server has not
-      // succeeded, and pretending otherwise is the bug above.
+      // No fallback on purpose: a login that cannot reach the server has not
+      // succeeded.
     );
 
     if (!pair?.access) {
@@ -125,8 +115,8 @@ export class AuthService {
 
     tokenStore.set(pair.access, pair.refresh);
     const session = await AuthService.getCurrentUser();
-    // The route guard runs on the server and cannot read permissions, so the
-    // answer is written where it can see it.
+    // The route guard cannot read permissions, so write the answer where it
+    // can see it.
     tokenStore.setScope(session.home === "/pos" ? "pos" : "full");
     return session;
   }
@@ -139,8 +129,8 @@ export class AuthService {
       throw new ApiError(401, "TOKEN_INVALID", "Your session has ended. Please sign in again.");
     }
 
-    // The server decides which branch you are standing in; remember it so every
-    // later request is scoped the same way the token already is.
+    // The server decides which branch you are in. Remember it, so later
+    // requests match the token.
     if (me.activeBranch?.id) tokenStore.setBranch(me.activeBranch.id);
 
     return {
@@ -160,10 +150,7 @@ export class AuthService {
     return Boolean(tokenStore.access());
   }
 
-  /**
-   * Sign out. Clears local state FIRST, so a failure to reach the server still
-   * ends the session on this device.
-   */
+  /** Sign out. Clears this device first, so a network failure still signs out. */
   static async logout(): Promise<void> {
     const refresh = tokenStore.refresh();
     tokenStore.clear();
@@ -175,12 +162,12 @@ export class AuthService {
         body: JSON.stringify({ refresh }),
       });
     } catch {
-      // The tokens are already gone locally; the server-side blacklist is a
-      // best effort and must not keep someone signed in on a dead network.
+      // The tokens are already gone here. Telling the server is a bonus, not
+      // a reason to stay signed in.
     }
   }
 
-  /** Wording a person can act on, for the login form. */
+  /** A message the login form can show a person. */
   static describeError(error: unknown): string {
     if (error instanceof ApiError) {
       switch (error.code) {

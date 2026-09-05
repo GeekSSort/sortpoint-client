@@ -9,13 +9,12 @@ import { ApiError } from "@/services/apiClient";
 /**
  * The console home: every customer company on the platform.
  *
- * This is where SORTPoint staff land after signing in at the console address.
- * Before this page existed, a successful console sign-in went to /dashboard —
- * a shop screen, whose every request a console token is refused for.
+ * Where our own staff land after signing in at the console address. Before
+ * this page existed they landed on /dashboard, a shop screen that refuses a
+ * console token on every request.
  *
- * Deliberately plain. It is the first honest view of the console, not the
- * finished product: the server already answers with plan, status and counts in
- * a single query, so showing them costs nothing.
+ * Plain on purpose. The server already returns plan, status and counts in one
+ * query, so showing them costs nothing.
  */
 
 const STATUS_TONE: Record<string, string> = {

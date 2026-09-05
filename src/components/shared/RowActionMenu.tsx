@@ -4,15 +4,13 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { createPortal } from "react-dom";
 
 /**
- * The 40x40 row action button and its menu (Figma 30:17006 / 45:3210):
- * radius 10, #eaeaea outline, a 0 1px 2px rgba(82,88,102,.06) shadow and the
- * vuesax "more" glyph stood upright.
+ * The 40x40 row action button and its menu (Figma 30:17006 / 45:3210).
  *
- * The menu is rendered in a portal at fixed coordinates, not inside the row:
- * every table clips its own overflow, which cut the menu off on the last row
- * and made those actions unreachable. It flips above the button when there is
- * no room below, follows the button while the page scrolls, and closes on
- * Escape, a click elsewhere, or the button leaving the viewport.
+ * The menu is drawn in a portal, not inside the row: tables clip what
+ * overflows them, which hid the menu on the last row and made those actions
+ * unclickable. It opens above the button when there is no room below, follows
+ * the button on scroll, and closes on Escape, a click elsewhere, or the button
+ * scrolling out of view.
  */
 
 const MENU_WIDTH = 160;
@@ -49,9 +47,8 @@ export default function RowActionMenu({
 
   useEffect(() => {
     if (!open) return;
-    // Reposition rather than close: a focusable row scrolls itself into view
-    // when its button is clicked, and closing on that scroll shut the menu in
-    // the same tick it opened.
+    // Move it rather than close it. Clicking a focusable row scrolls the row
+    // into view, and closing on that scroll shut the menu as it opened.
     const follow = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect || rect.bottom < 0 || rect.top > window.innerHeight) {

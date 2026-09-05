@@ -314,7 +314,7 @@ export default function StockPage() {
                 }
                 const next = adjustOf.available + delta;
                 if (next < 0) return setAdjustError("That would take available stock below zero.");
-                // Optimistic: the mock backend has no adjust endpoint yet.
+                // Changed on screen only: there is no adjust endpoint yet.
                 setStock((list) =>
                   list.map((x) =>
                     x.id === adjustOf.id

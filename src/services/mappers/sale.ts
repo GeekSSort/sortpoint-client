@@ -2,11 +2,12 @@ import { SaleRecord } from "@/types/sales";
 import { toAmount } from "../apiClient";
 
 /**
- * Backend Sale -> the sales table's shape. The two sides use different words,
- * not just different casing: invoice_number/invoiceNo, grand_total/totalAmount.
+ * A sale from the server -> a row in the sales table. The two sides use
+ * different words, not just different casing: `invoice_number` against
+ * `invoiceNo`, `grand_total` against `totalAmount`.
  *
- * `status` is the sharpest: the server's COMPLETED/CANCELLED describes the
- * document, while the table's Paid/Unpaid is a question about what is owed.
+ * Status differs most. The server's COMPLETED or CANCELLED describes the
+ * document; the table's Paid or Unpaid asks whether money is still owed.
  */
 
 const CURRENCY = new Intl.NumberFormat("en-BD", {
@@ -28,7 +29,7 @@ const PAYMENT_LABELS: Record<string, SaleRecord["paymentMethod"]> = {
 function paymentMethodOf(row: any): SaleRecord["paymentMethod"] {
   const payments: any[] = Array.isArray(row?.payments) ? row.payments : [];
   if (payments.length === 0) return "Cash";
-  // A split payment has no single method; the largest one is the honest label.
+  // A split payment has no single method, so the largest part names it.
   const largest = payments.reduce((a, b) => (toAmount(b?.amount) > toAmount(a?.amount) ? b : a));
   return PAYMENT_LABELS[String(largest?.method || "").toUpperCase()] || "Cash";
 }

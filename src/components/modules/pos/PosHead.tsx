@@ -8,15 +8,13 @@ import { NotificationItem } from "@/types/notifications";
 import { useSession } from "@/services/useSession";
 
 /**
- * Figma: SORTPoint — POS environment head 247:13658.
+ * The till's top bar — Figma 247:13658.
  *
- * px-24 py-12 over a #eaeaea rule, a 40px semibold gold title on the left and
- * a 12px-gap pair of 40px controls on the right: a circular bell button at
- * radius 22 with a 0.5px hairline, then the avatar.
+ * A gold title on the left, a round bell button and the avatar on the right.
  *
- * Distinct from the dashboard Header, which runs a 42px title with a subtitle
- * underneath and carries the notification and profile menus. In the till the
- * chrome stays quiet — the page name and who is on the terminal, nothing else.
+ * Not the dashboard's Header: that one has a subtitle and carries the
+ * notification and profile menus. The till stays quiet — the page name and who
+ * is on the terminal, nothing else.
  */
 
 function BellIcon() {

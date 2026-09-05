@@ -2,11 +2,11 @@ import React from "react";
 import Image from "next/image";
 
 /**
- * The small square that stands in for a person or a company in a table row.
+ * The small square standing in for a person or company in a table row.
  *
- * Most of these records have no photo on the server, and `<Image src="">` is a
- * runtime error, not an empty box — so the fallback is the initials, drawn to
- * the same geometry as the photo it replaces.
+ * Most records have no photo on the server, and an empty `<Image src>` throws
+ * rather than drawing nothing — so it falls back to initials, at the same size
+ * as the photo would be.
  */
 export default function Avatar({
   name,

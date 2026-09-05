@@ -6,13 +6,14 @@ import { formatMoney } from "@/lib/format";
 /**
  * Catalogue and stock rows -> the inventory tables.
  *
- * Both were rendering raw API rows, so category and brand showed as uuids and
- * price, stock, SKU and status were blank. Price and SKU live on the default
- * VARIANT, not the product; on-hand quantity lives in `/inventory/stock/` and
- * is joined on SKU.
+ * Both used to show raw API rows, so category and brand appeared as ids and
+ * price, stock, SKU and status were empty.
+ *
+ * Price and SKU sit on the product's default variant, not the product itself,
+ * and how many are on the shelf comes from `/inventory/stock/`, matched by SKU.
  */
 
-/** Below this many units a line reads as running out. */
+/** At or below this many units, a product counts as running out. */
 const LOW_STOCK = 10;
 
 function statusFor(available: number, reorder: number): StockItem["status"] {

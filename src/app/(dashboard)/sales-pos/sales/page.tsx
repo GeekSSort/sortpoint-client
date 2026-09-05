@@ -11,14 +11,13 @@ import { matchesDay } from "@/lib/dateFilter";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
 /**
- * Figma: SORTPoint — Sales 45:3002.
+ * Sales — Figma 45:3002.
  *
- * 1160 page: a 54px headline with an outlined date field and a gold Export
- * button, then a 898px card — 68px head with the search field, a 1128-wide
- * table (40px head, 54px rows) and the 64px pagination bar.
+ * Search on the left of the headline, date and Export on the right, then the
+ * table: 40px head, 54px rows, pager below.
  *
- * Below md the rows become stacked cards; the table scrolls in its own
- * container between md and the design width. Mine, no Figma frame for either.
+ * Below md each row becomes a card, and in between the table scrolls
+ * sideways. No Figma frame for either; both are our choice.
  */
 
 const STATUS_TONE: Record<SaleRecord["status"], Tone> = {
@@ -357,7 +356,7 @@ export default function SalesPage() {
               onClick={() => {
                 if (!refundOf) return;
                 setRefunding(true);
-                // Optimistic: the mock backend has no refund endpoint yet.
+                // Changed on screen only: there is no refund endpoint yet.
                 const next: SaleRecord["status"] = undoing ? "Paid" : "Refunded";
                 setSales((list) => list.map((x) => (x.id === refundOf.id ? { ...x, status: next } : x)));
                 setNote(

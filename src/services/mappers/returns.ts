@@ -3,11 +3,11 @@ import { toAmount } from "../apiClient";
 import { formatMoney } from "@/lib/format";
 
 /**
- * Sale return -> a row in the returns table.
+ * A sale return -> a row in the returns table.
  *
- * Unmapped, the table showed a customer name, a raw CONFIRMED status and
- * seven blanks: the API calls them `reference_no`, `invoice_number`,
- * `return_date` and `grand_total`.
+ * Without this the table showed a customer name, a raw CONFIRMED status and
+ * seven blanks, because the API calls those fields `reference_no`,
+ * `invoice_number`, `return_date` and `grand_total`.
  */
 
 const TENDER: Record<string, ReturnRecord["paymentMethod"]> = {

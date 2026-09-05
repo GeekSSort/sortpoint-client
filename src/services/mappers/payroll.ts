@@ -3,11 +3,11 @@ import { toAmount } from "../apiClient";
 import { formatMoney } from "@/lib/format";
 
 /**
- * Payroll run -> one table row per payslip.
+ * A payroll run -> one table row per payslip.
  *
- * The API returns runs with their payslips nested; the table is a flat list of
- * people. Payment status lives on the run, not the payslip, so every row in a
- * run shares it: POSTED reads as Paid, anything else as Pending.
+ * The API nests payslips inside runs; the table is a flat list of people.
+ * Paid or not is a property of the run, not the payslip, so every row in a run
+ * shares it: POSTED reads as Paid, anything else as Pending.
  */
 
 export interface PayrollRun {

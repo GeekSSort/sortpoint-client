@@ -368,7 +368,7 @@ export default function PurchasesPage() {
               className={MODAL_PRIMARY}
               onClick={() => {
                 if (!markOf) return;
-                // Optimistic: the mock backend has no update endpoint yet.
+                // Changed on screen only: there is no update endpoint yet.
                 setPurchases((list) =>
                   list.map((x) =>
                     x.id === markOf.row.id

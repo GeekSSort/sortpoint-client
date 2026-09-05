@@ -7,9 +7,8 @@ import { BranchService } from "./branchService";
 /**
  * Employees, and what they did today.
  *
- * The list joins two resources: `/hrm/employees/` says who somebody is,
- * `/hrm/attendance/` says whether they are in. The server keeps them apart and
- * the table shows them together.
+ * Two endpoints: `/hrm/employees/` says who someone is, `/hrm/attendance/`
+ * says whether they are in. The table shows them together.
  */
 
 export interface Lookup {
@@ -21,10 +20,9 @@ export class HrmService {
   /**
    * The employees table.
    *
-   * Filtered and paged in the browser, because `/hrm/employees/` accepts only
-   * `limit` and `page` — no search and no filters. Fetching the company in one
-   * go is honest at this size and keeps search, filter and pager agreeing with
-   * each other; a server-side search is the proper fix and is in the report.
+   * Searched, filtered and paged here, because the endpoint takes only `limit`
+   * and `page`. Loading everyone at once keeps the search, the filter and the
+   * pager agreeing. A search on the server is the real fix.
    */
   static async getEmployees(params?: HrmQueryFilter): Promise<PagedResult<EmployeeRecord>> {
     const page = params?.page ?? 1;
@@ -42,7 +40,7 @@ export class HrmService {
       ),
     ]);
 
-    // Already-mapped fallback rows: nothing to join.
+    // Sample rows are already in the right shape, so there is nothing to join.
     const mapped: EmployeeRecord[] = employees.data[0]?.status
       ? (employees.data as EmployeeRecord[])
       : (() => {
@@ -100,9 +98,9 @@ export class HrmService {
   /**
    * Create an employee.
    *
-   * The form collects a full name and typed department/designation; the API
-   * wants first/last and ids. Names are resolved here — and created when they
-   * are new — so the one place that knows the API shape is this file.
+   * The form takes a full name and typed department and job title; the API
+   * wants first and last name and ids. The swap happens here, and a name that
+   * does not exist yet is created.
    */
   static async createEmployee(payload: {
     name: string;
@@ -131,8 +129,8 @@ export class HrmService {
       method: "POST",
       body: JSON.stringify({
         first_name: first,
-        // The API requires a last name; a single-word name repeats it rather
-        // than failing validation in front of the person typing.
+        // The API needs a last name, so a one-word name repeats itself rather
+        // than failing in front of the person typing.
         last_name: rest.join(" ") || first,
         email: payload.email,
         phone: payload.phone || "",
@@ -148,7 +146,7 @@ export class HrmService {
   /**
    * Mark somebody in or out for today.
    *
-   * `time` is "HH:MM" from the modal; without it the server stamps now.
+   * `time` is "HH:MM" from the dialog. Without it the server uses now.
    */
   static async clock(employeeId: string, direction: "in" | "out", time?: string): Promise<void> {
     const field = direction === "in" ? "check_in" : "check_out";

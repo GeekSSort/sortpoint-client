@@ -10,14 +10,13 @@ import TablePagination from "@/components/shared/TablePagination";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/shared/Modal";
 
 /**
- * Figma: SORTPoint — Customer 51:9099.
+ * Customers — Figma 51:9099.
  *
- * 1160 page: 54px headline (title left, date field + Add New right), then an
- * 898px card — 68px head with the title and search, a 1128-wide nine-column
- * table (40px head, 54px rows) and the 64px pagination bar.
+ * Search and Add New in the headline, then a nine-column table: 40px head,
+ * 54px rows, pager below.
  *
- * Below md the rows become stacked cards; between md and the design width the
- * table scrolls in its own container. Mine, no Figma frame for either.
+ * Below md each row becomes a card, and in between the table scrolls
+ * sideways. No Figma frame for either; both are our choice.
  */
 
 const STATUS_TONE: Record<CustomerRecord["status"], Tone> = {
@@ -305,7 +304,7 @@ export default function CustomersPage() {
                   return setPayError(`Amount can't exceed the ${payFor.dueAmountFormatted} due.`);
                 }
                 const left = payFor.dueAmount - amount;
-                // Optimistic: the mock backend has no payments endpoint yet.
+                // Changed on screen only: there is no payments endpoint yet.
                 setCustomers((list) =>
                   list.map((x) =>
                     x.id === payFor.id

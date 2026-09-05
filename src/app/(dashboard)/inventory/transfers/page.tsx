@@ -128,7 +128,7 @@ export default function TransfersPage() {
       dateTime: `${now.getDate()} ${now.toLocaleString("en-GB", { month: "long" })} ${now.getFullYear()}, ${now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })}`,
       status: "Pending",
     };
-    // Optimistic: the mock backend has no create endpoint yet.
+    // Changed on screen only: there is no create endpoint yet.
     setTransfers((list) => [created, ...list]);
     setNote(`${created.transferId} created`);
     setDraft({ ...blank });

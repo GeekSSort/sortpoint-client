@@ -12,15 +12,13 @@ import { matchesDay } from "@/lib/dateFilter";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
 /**
- * Figma: SORTPoint — Return 45:4116.
+ * Returns — Figma 45:4116.
  *
- * 1160 page: a 48px headline with the search field on the LEFT and the date
- * field + Add New on the right, then an 878px card — 48px head with a centred
- * title, a 1128-wide nine-column table (40px head, 54px rows) and the 64px
- * pagination bar.
+ * Search on the left of the headline, date and Add New on the right, then a
+ * nine-column table: 40px head, 54px rows, pager below.
  *
- * Below md the rows become stacked cards; between md and the design width the
- * table scrolls in its own container. Mine, no Figma frame for either.
+ * Below md each row becomes a card, and in between the table scrolls
+ * sideways. No Figma frame for either; both are our choice.
  */
 
 const STATUS_TONE: Record<ReturnRecord["status"], Tone> = {
@@ -30,7 +28,7 @@ const STATUS_TONE: Record<ReturnRecord["status"], Tone> = {
   Rejected: "red",
 };
 
-/** Node 48:5997 — add. */
+/** Add, node 48:5997. */
 function AddIcon() {
   return (
     <svg className="block size-[20px] shrink-0" viewBox="0 0 20 20" fill="none" aria-hidden>
@@ -360,7 +358,7 @@ export default function ReturnPage() {
               onClick={() => {
                 if (!decideOn) return;
                 setWorking(true);
-                // Optimistic: the mock backend has no approval endpoint yet.
+                // Changed on screen only: there is no approval endpoint yet.
                 setReturns((list) =>
                   list.map((x) => (x.id === decideOn.row.id ? { ...x, status: decideOn.to } : x))
                 );

@@ -1,11 +1,10 @@
 import { EmployeeRecord } from "@/types/hrm";
 
 /**
- * Employee + today's attendance -> a row in the employees table.
+ * Employee plus today's attendance -> a row in the employees table.
  *
- * Two resources, because the server keeps them apart: an employee is who
- * somebody is, attendance is what they did today. The caller fetches both and
- * joins on employee id.
+ * The server keeps the two apart: one says who somebody is, the other says
+ * whether they came in. The caller fetches both and matches them by id.
  */
 
 const STATUS: Record<string, EmployeeRecord["status"]> = {
@@ -15,7 +14,7 @@ const STATUS: Record<string, EmployeeRecord["status"]> = {
   ABSENT: "Absent",
 };
 
-/** "09:02:00" -> "09:02 AM". Absent rows have no time at all. */
+/** "09:02:00" -> "09:02 AM". Somebody absent has no time at all. */
 export function toClockTime(value: unknown): string {
   if (typeof value !== "string" || !value.includes(":")) return "—";
   const [h, m] = value.split(":");

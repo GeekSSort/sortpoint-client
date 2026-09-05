@@ -11,12 +11,12 @@ import Avatar from "@/components/shared/Avatar";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
 /**
- * Suppliers — no Figma node exists for this screen, so the layout is my own:
- * it reuses the Purchase History frame exactly (search left / Add New right,
- * 40px head over 54px rows, the shared pagination bar) so the two pages in the
- * Purchases section read as one set.
+ * Suppliers. There is no Figma frame for this screen, so it borrows the
+ * Purchase History one exactly — search left, Add New right, 40px head over
+ * 54px rows — and the two pages read as a pair.
  *
- * Rows are clickable and open the supplier; the row menu carries the writes.
+ * Clicking a row opens the supplier; everything that changes data is in the
+ * row menu.
  */
 
 const STATUS_TONE: Record<SupplierRecord["status"], Tone> = {

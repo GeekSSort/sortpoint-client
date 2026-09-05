@@ -11,13 +11,13 @@ import TablePagination from "@/components/shared/TablePagination";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
 /**
- * Figma: SORTPoint — Product 51:10942.
+ * Products — Figma 51:10942.
  *
- * 1160 page: search on the left of the headline, date field + Add New on the
- * right, then an 898px card holding a 1128-wide nine-column table (40px head,
- * 54px rows) and the 64px pagination bar. Column tracks are the design widths
- * as fr units, so extra width is shared evenly rather than pooling in one
- * column.
+ * Search on the left of the headline, date and Add New on the right, then a
+ * nine-column table: 40px head, 54px rows, pager below.
+ *
+ * The columns use the design's widths as fr units, so a wider screen shares
+ * the extra space instead of piling it into one column.
  */
 
 const STATUS_TONE: Record<InventoryProduct["status"], Tone> = {
@@ -312,7 +312,7 @@ export default function InventoryPage() {
               className={MODAL_PRIMARY}
               onClick={() => {
                 if (!deleteOf) return;
-                // Optimistic: the mock backend has no delete endpoint yet.
+                // Changed on screen only: there is no delete endpoint yet.
                 setProducts((list) => list.filter((x) => x.id !== deleteOf.id));
                 setNote(`${deleteOf.name} deleted`);
                 setDeleteOf(null);
@@ -358,7 +358,7 @@ export default function InventoryPage() {
                   return setEditError("Enter a valid price.");
                 if (!draft.stock.trim() || Number.isNaN(stock) || stock < 0)
                   return setEditError("Enter a valid stock count.");
-                // Optimistic: the mock backend has no update endpoint yet.
+                // Changed on screen only: there is no update endpoint yet.
                 setProducts((list) =>
                   list.map((x) =>
                     x.id === editOf.id

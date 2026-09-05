@@ -7,22 +7,20 @@ import { AuthService } from "./authService";
 export { initialDashboardData };
 
 export class DashboardService {
-  /**
-   * Fetch complete aggregated dashboard data
-   */
+  /** Everything the dashboard shows, in one go. */
   static async getDashboardData(): Promise<DashboardResponse> {
-    // The endpoint returns figures only — five summaries, no person and no
-    // metric cards. `toDashboardResponse` turns them into what the screen
-    // renders, and the greeting comes from whoever is signed in.
+    // The endpoint returns figures only: five summaries, no person and no
+    // cards. The mapper builds the screen from them, and the greeting comes
+    // from whoever is signed in.
     const [payload, user, sales] = await Promise.all([
       apiFetch<any>("/dashboard/", { method: "GET" }, null),
       AuthService.getCurrentUser().catch(() => ({ greeting: "there", email: "" })),
-      // Recent Activities is the sales list; the server has no feed of its own.
+      // Recent Activities is the sales list: the server has no feed of its own.
       apiFetch<any>("/sales/?limit=8", { method: "GET" }, { data: [] }).catch(() => ({ data: [] })),
     ]);
 
     if (!payload) return initialDashboardData;
-    // The greeting, not the full name — the heading reads "Welcome, ___".
+    // The greeting name, not the full name: the heading reads "Welcome, ___".
     return toDashboardResponse(
       payload,
       { name: user.greeting, email: user.email },
@@ -31,12 +29,10 @@ export class DashboardService {
   }
 
   /**
-   * The pieces of the dashboard, read from the one bundle the server returns.
+   * The parts of the dashboard, taken from that one bundle.
    *
-   * `/dashboard/metrics`, `/dashboard/sales-summary` and
-   * `/dashboard/recent-activities` were called here and none of them exist.
-   * Rather than three dead URLs, these now slice the bundle — one round trip,
-   * and no call that cannot succeed.
+   * There is no `/dashboard/metrics` or `/dashboard/sales-summary` on the
+   * server, so these slice the bundle instead of calling URLs that fail.
    */
   static async getMetrics(): Promise<MetricCardData[]> {
     return (await DashboardService.getDashboardData()).metrics;
@@ -46,10 +42,7 @@ export class DashboardService {
     return (await DashboardService.getDashboardData()).salesSummary;
   }
 
-  /**
-   * Always empty for now: the server has no activity feed at all. Returning
-   * sales under this name would be a different list wearing its label.
-   */
+  /** Empty for now: the server has no activity feed. */
   static async getRecentActivities(): Promise<RecentActivityItem[]> {
     return [];
   }

@@ -5,13 +5,12 @@ import { formatMoney } from "@/lib/format";
 /**
  * Supplier -> a row in the suppliers table.
  *
- * The rows were being handed to the table straight off the wire, so only the
- * two fields whose names happened to match (name, phone) ever appeared and
- * every money column was blank.
+ * Rows used to go to the table straight from the API, so only name and phone
+ * showed — the two names that happen to match — and every money column was
+ * blank.
  *
- * Total purchases and last purchase date are not on the supplier resource;
- * they are summed from `/purchases/` by the caller, which already has that
- * list.
+ * Total purchases and the last purchase date are not on the supplier. The
+ * caller sums them from the purchase list it already has.
  */
 
 export interface PurchaseTotals {
@@ -43,7 +42,7 @@ export function toSupplierRecord(
   };
 }
 
-/** Purchases summed per supplier id, for the two columns they feed. */
+/** Purchases added up per supplier, for those two columns. */
 export function purchaseTotals(purchases: any[]): Map<string, PurchaseTotals> {
   const out = new Map<string, PurchaseTotals>();
   for (const p of purchases || []) {

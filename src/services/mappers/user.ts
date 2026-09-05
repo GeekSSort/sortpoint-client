@@ -1,10 +1,10 @@
 import { SystemUserRecord } from "@/types/roles";
 
 /**
- * API user -> a row in the user list.
+ * A user from the API -> a row in the user list.
  *
- * Roles come back as names; a person can hold several, and the table has one
- * column, so it shows the first and counts the rest.
+ * Roles come back as names and a person can hold several, but the table has
+ * one column: it shows the first and counts the rest.
  */
 
 const WHEN = new Intl.DateTimeFormat("en-GB", {
@@ -13,7 +13,7 @@ const WHEN = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
-/** "2026-09-04T10:12:00Z" -> "04 Sep 2026". Never signed in reads as "—". */
+/** "2026-09-04T10:12:00Z" -> "04 Sep 2026". Never signed in shows "—". */
 export function toLastLogin(value: unknown): string {
   if (typeof value !== "string" || !value) return "—";
   const at = new Date(value);

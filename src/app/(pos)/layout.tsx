@@ -3,14 +3,13 @@ import PosRail from "@/components/modules/pos/PosRail";
 import PosHead from "@/components/modules/pos/PosHead";
 
 /**
- * Figma: SORTPoint — POS environment 247:13582.
+ * The till environment — Figma 247:13582.
  *
- * A sibling of (dashboard), not a page inside it: the till owns the whole
- * window. 240 of rail against a white content column, the content scrolling
- * under a head that stays put.
+ * Beside (dashboard), not inside it: the till owns the whole window. A 240px
+ * menu next to a white column that scrolls under a fixed head.
  *
- * Its own rail and head, so nothing from the back office leaks in — and no
- * SidebarProvider, because that context belongs to the dashboard's drawer.
+ * It has its own menu and head so nothing from the back office appears here,
+ * and no SidebarProvider, which belongs to the dashboard's drawer.
  */
 export default function PosLayout({ children }: { children: React.ReactNode }) {
   return (

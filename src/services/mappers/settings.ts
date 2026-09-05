@@ -1,15 +1,15 @@
 import { CompanyProfile } from "@/types/settings";
 
 /**
- * Organization -> the company profile form.
+ * The organization -> the company profile form.
  *
- * `/organizations/` is a LIST of one, and its fields are named for the
- * organization, not for this form. Reading it straight put `undefined` in
- * every input, which is what flipped them from controlled to uncontrolled.
+ * `/organizations/` returns a list of one, and its fields are named for the
+ * organization, not for this form. Read straight, every input got `undefined`,
+ * which is what turned them from controlled into uncontrolled.
  *
- * Business type, website and trade licence have no column on the server; they
- * stay on the form because the design asks for them, and they are listed in
- * the backend report as fields with nowhere to go.
+ * Business type, website and trade licence have nowhere to be stored on the
+ * server. They stay on the form because the design asks for them, and they are
+ * listed in the backend report.
  */
 
 export function toCompanyProfile(row: any, fallback: CompanyProfile): CompanyProfile {
@@ -31,7 +31,7 @@ export function toCompanyProfile(row: any, fallback: CompanyProfile): CompanyPro
   };
 }
 
-/** The form -> the fields the organization endpoint actually accepts. */
+/** The form -> the fields the organization endpoint accepts. */
 export function toOrganizationPayload(profile: Partial<CompanyProfile>): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   if (profile.companyName !== undefined) body.name = profile.companyName;

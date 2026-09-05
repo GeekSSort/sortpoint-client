@@ -7,14 +7,13 @@ import { PosService } from "@/services";
 import TablePagination from "@/components/shared/TablePagination";
 
 /**
- * Figma: SORTPoint — POS product list 45:2171.
+ * The till's product list — Figma 45:2171.
  *
- * 565-wide column: a 44px search bar, 16px gap, then the category row (40px),
- * 24px gap and a 3-up grid of 180x248 cards (12.5 across, 14 down) over a 48px
- * pagination bar.
+ * A 565 column: 44px search, the category row, then three 180x248 cards
+ * across over a 48px pager.
  *
- * Below the design width the grid reflows on its own track size rather than
- * holding three columns — mine, no Figma frame for it.
+ * On a narrower screen the cards keep their size and the grid drops a column.
+ * There is no Figma frame for that; it is our choice.
  */
 
 const CATEGORIES: ProductCategory[] = [
@@ -25,7 +24,7 @@ const CATEGORIES: ProductCategory[] = [
   "Home & Living",
 ];
 
-/** Node 45:2174 — magnifier. */
+/** Magnifier, node 45:2174. */
 function SearchIcon() {
   return (
     <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -42,7 +41,7 @@ function SearchIcon() {
   );
 }
 
-/** Node 45:2179 — barcode scan. */
+/** Barcode scanner, node 45:2179. */
 function ScanIcon() {
   return (
     <svg className="block size-[24px] shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -57,7 +56,7 @@ function ScanIcon() {
   );
 }
 
-/** vuesax/linear/more, turned upright — node 45:2196. */
+/** The upright "more" dots, node 45:2196. */
 function MoreIcon() {
   return (
     <svg className="block size-[16px] -rotate-90" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -76,8 +75,8 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [category, setCategory] = useState<ProductCategory>("All Categories");
 
-  // Built from what the catalogue actually holds. The hard-coded list only ever
-  // matched the sample data, so every real product fell outside all four tabs.
+  // Built from what the catalogue holds. The old fixed list only matched the
+  // sample data, so every real product fell outside all four tabs.
   const categories = React.useMemo(() => {
     const found = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
     found.sort();
@@ -85,9 +84,8 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   }, [products]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  // 9 a page — 3 across x 3 down at the design width, which is the Figma page.
-  // The grid stays on 150-180px cards and simply adds columns on a wider screen
-  // rather than stretching three of them to 300px each.
+  // Nine a page: three across, three down, as in the design. On a wider
+  // screen the grid adds columns instead of stretching the cards.
   const [pageSize, setPageSize] = useState(9);
 
   useEffect(() => {
@@ -181,9 +179,9 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
                 {p.image ? (
                   <Image src={p.image} alt={p.name} fill sizes="180px" className="object-cover" />
                 ) : (
-                  // Real products carry no image yet, and an empty src makes the
-                  // browser re-download the page. Initials are enough to tell
-                  // two products apart on a till screen.
+                  // Real products have no image yet, and an empty src makes the
+                  // browser reload the page. Initials are enough to tell two
+                  // products apart on a till.
                   <span
                     aria-hidden
                     className="flex h-full w-full items-center justify-center text-[22px] font-semibold text-[#c9c9c9]"
@@ -237,7 +235,7 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
   );
 }
 
-/** First letters of the first two words — a stand-in for a missing photo. */
+/** First letters of the first two words, standing in for a missing photo. */
 function initials(name: string): string {
   return (name || "?")
     .split(/\s+/)
