@@ -7,16 +7,23 @@ import { AuthService } from "./authService";
 export { initialDashboardData };
 
 export class DashboardService {
-  /** Everything the dashboard shows, in one go. */
-  static async getDashboardData(): Promise<DashboardResponse> {
+  /**
+   * Everything the dashboard shows, in one go.
+   *
+   * The branch goes in the query string. The server scopes reports on
+   * `branch_id`, not on the branch stamped in the token, so without it every
+   * branch showed the whole company's figures.
+   */
+  static async getDashboardData(branchId?: string | null): Promise<DashboardResponse> {
+    const scope = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     // The endpoint returns figures only: five summaries, no person and no
     // cards. The mapper builds the screen from them, and the greeting comes
     // from whoever is signed in.
     const [payload, user, sales] = await Promise.all([
-      apiFetch<any>("/dashboard/", { method: "GET" }, null),
+      apiFetch<any>(`/dashboard/${scope}`, { method: "GET" }, null),
       AuthService.getCurrentUser().catch(() => ({ greeting: "there", email: "" })),
       // Recent Activities is the sales list: the server has no feed of its own.
-      apiFetch<any>("/sales/?limit=8", { method: "GET" }, { data: [] }).catch(() => ({ data: [] })),
+      apiFetch<any>(`/sales/?limit=8${branchId ? `&branch_id=${branchId}` : ""}`, { method: "GET" }, { data: [] }).catch(() => ({ data: [] })),
     ]);
 
     if (!payload) return initialDashboardData;

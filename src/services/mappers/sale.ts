@@ -34,6 +34,31 @@ function paymentMethodOf(row: any): SaleRecord["paymentMethod"] {
   return PAYMENT_LABELS[String(largest?.method || "").toUpperCase()] || "Cash";
 }
 
+/**
+ * The server sends an ISO timestamp; the table showed it raw, so a row read
+ * "2026-09-05T09:32:41.514623+06:00". Rendered in the shape the rest of the
+ * app uses — and the shape `matchesDay` parses, so the date filter above the
+ * table keeps matching.
+ */
+const WHEN = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function whenOf(value: unknown): string {
+  const raw = String(value ?? "");
+  if (!raw) return "";
+  const at = new Date(raw);
+  if (Number.isNaN(at.getTime())) return raw;
+  // "05 Sep 2026, 09:32 am" -> "05 Sep 2026 - 09:32 AM"
+  const [day, time] = WHEN.format(at).split(", ");
+  return `${day} - ${(time || "").toUpperCase()}`;
+}
+
 function statusOf(row: any): SaleRecord["status"] {
   if (String(row?.status).toUpperCase() === "CANCELLED") return "Refunded";
   return toAmount(row?.dueAmount) > 0 ? "Unpaid" : "Paid";
@@ -44,7 +69,7 @@ export function toSaleRecord(row: any): SaleRecord {
   return {
     id: String(row?.id ?? ""),
     invoiceNo: String(row?.invoiceNumber ?? ""),
-    dateTime: String(row?.saleDate ?? ""),
+    dateTime: whenOf(row?.saleDate),
     customerName: String(row?.customerName ?? "Walk-in Customer"),
     totalAmount: total,
     totalAmountFormatted: formatAmount(total),

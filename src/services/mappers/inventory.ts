@@ -9,8 +9,12 @@ import { formatMoney } from "@/lib/format";
  * Both used to show raw API rows, so category and brand appeared as ids and
  * price, stock, SKU and status were empty.
  *
- * Price and SKU sit on the product's default variant, not the product itself,
- * and how many are on the shelf comes from `/inventory/stock/`, matched by SKU.
+ * Price and SKU sit on the product's default variant, not the product itself.
+ * The category name, the brand name and the units on hand are now annotated
+ * onto the row by the API. They used to need three more requests -- two lookup
+ * tables and a crawl through every stock row in the shop, matched back by SKU
+ * -- and the crawl stopped at 1200 rows, so anything past it read as empty
+ * shelves.
  */
 
 /** At or below this many units, a product counts as running out. */
@@ -32,7 +36,11 @@ export function toInventoryProduct(row: any, index: number, lookups: Lookups = {
   const variant = variants.find((v) => v?.isDefault) || variants[0] || {};
   const sku = String(variant?.sku ?? "—");
   const price = toAmount(variant?.price);
-  const stock = toAmount(lookups.stockBySku?.get(sku) ?? 0);
+  // The API's own figure, scoped to the branches the caller can see. The
+  // SKU-matched fallback is for the bundled sample rows only.
+  const annotatedStock = row?.stockOnHand ?? row?.stock_on_hand;
+  const stock =
+    annotatedStock != null ? toAmount(annotatedStock) : toAmount(lookups.stockBySku?.get(sku) ?? 0);
 
   const images: any[] = Array.isArray(row?.images) ? row.images : [];
   const ready = images.filter((i) => !i?.status || i.status === "READY");
@@ -47,9 +55,12 @@ export function toInventoryProduct(row: any, index: number, lookups: Lookups = {
     image: raw ? encodeURI(raw) : "",
     // The UI type names five categories, the catalogue has twenty. The real
     // name is carried through and the table filters on it as a string.
-    category: (lookups.categories?.get(String(row?.category ?? "")) ||
+    category: (row?.categoryName ||
+      row?.category_name ||
+      lookups.categories?.get(String(row?.category ?? "")) ||
       "Uncategorised") as InventoryProduct["category"],
-    brand: lookups.brands?.get(String(row?.brand ?? "")) || "—",
+    brand:
+      row?.brandName || row?.brand_name || lookups.brands?.get(String(row?.brand ?? "")) || "—",
     price,
     priceFormatted: price > 0 ? formatMoney(price, { decimals: 2 }) : "No price",
     stock,
@@ -61,10 +72,15 @@ export function toInventoryProduct(row: any, index: number, lookups: Lookups = {
 export function toStockItem(row: any): StockItem {
   const available = toAmount(row?.available);
   const reorder = toAmount(row?.reorderLevel ?? row?.reorder_level);
+  // Some filenames contain spaces; unencoded they break the request.
+  const image = String(row?.productImage ?? row?.product_image ?? "");
   return {
     id: String(row?.id ?? ""),
+    // The variant, not the stock row: an adjustment is written against it.
+    variantId: String(row?.variant ?? ""),
+    warehouseId: String(row?.warehouse ?? ""),
     name: String(row?.productName ?? row?.product_name ?? "—"),
-    image: "",
+    image: image ? encodeURI(image) : "",
     sku: String(row?.sku || "—"),
     // The warehouse comes back as an id and a code; the code is the readable one.
     warehouse: String(row?.warehouseCode ?? row?.warehouse_code ?? "—"),

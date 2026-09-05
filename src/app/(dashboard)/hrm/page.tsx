@@ -7,10 +7,12 @@ import { HrmService } from "@/services/hrmService";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import TablePagination from "@/components/shared/TablePagination";
+import TableSkeleton from "@/components/shared/TableSkeleton";
 import Avatar from "@/components/shared/Avatar";
 import DateField from "@/components/shared/DateField";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 import { toTimeInput } from "@/services/mappers/employee";
+import { toApiDay } from "@/lib/dateFilter";
 
 /**
  * All Employees — Figma 59:17405.
@@ -119,12 +121,16 @@ export default function HrmPage() {
   const [clockTime, setClockTime] = useState("");
   const [dropOf, setDropOf] = useState<EmployeeRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  /** The debounce is for typing. Waiting 250ms to make the FIRST request
+      just adds a quarter second of blank table on reload. */
+  const firstLoad = useRef(true);
 
   const load = useCallback(async () => {
     try {
       const res = await HrmService.getEmployees({
         search: query || undefined,
         status: filter === "All Employees" ? undefined : filter,
+        day: day ? toApiDay(day) : undefined,
         page,
         limit: pageSize,
       });
@@ -136,32 +142,41 @@ export default function HrmPage() {
     } finally {
       setLoading(false);
     }
-  }, [query, filter, page, pageSize]);
+  }, [query, filter, day, page, pageSize]);
 
   useEffect(() => {
+    // Debounced: this used to fire a request per keystroke. The guard was
+    // already here, so the rows were never wrong — just five requests to type
+    // a name.
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await HrmService.getEmployees({
-          search: query || undefined,
-          status: filter === "All Employees" ? undefined : filter,
-          page,
-          limit: pageSize,
-        });
-        if (cancelled) return;
-        setRows(res.data);
-        setTotal(res.total);
-        setNote(null);
-      } catch (e) {
-        if (!cancelled) setNote(HrmService.describeError(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    const timer = setTimeout(() => {
+      setLoading(true);
+      (async () => {
+        try {
+          const res = await HrmService.getEmployees({
+            search: query || undefined,
+            status: filter === "All Employees" ? undefined : filter,
+            day: day ? toApiDay(day) : undefined,
+            page,
+            limit: pageSize,
+          });
+          if (cancelled) return;
+          setRows(res.data);
+          setTotal(res.total);
+          setNote(null);
+        } catch (e) {
+          if (!cancelled) setNote(HrmService.describeError(e));
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+    }, firstLoad.current ? 0 : 250);
+    firstLoad.current = false;
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [query, filter, page, pageSize]);
+  }, [query, filter, day, page, pageSize]);
 
   useEffect(() => {
     if (!filterOpen) return;
@@ -268,7 +283,15 @@ export default function HrmPage() {
             )}
           </div>
 
-          <DateField value={day} onChange={setDay} ariaLabel="Filter attendance by date" />
+          <DateField
+            value={day}
+            onChange={(d) => {
+              setDay(d);
+              // Page 1 of the new day, not page 5 of the old one.
+              setPage(1);
+            }}
+            ariaLabel="Filter attendance by date"
+          />
 
           <Link
             href="/hrm/payroll"
@@ -320,6 +343,9 @@ export default function HrmPage() {
                   </div>
                 )}
 
+                {loading && rows.length === 0 && (
+                  <TableSkeleton columns={GRID} rows={pageSize} />
+                )}
                 {!loading && rows.length === 0 && (
                   <div className="col-span-8 px-[12px] py-[28px] text-center text-[14px] text-[#525252]">
                     No employees match this view.

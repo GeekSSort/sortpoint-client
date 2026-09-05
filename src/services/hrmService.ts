@@ -1,6 +1,6 @@
 import { EmployeeRecord, HrmQueryFilter } from "@/types/hrm";
 import { initialEmployeesData } from "@/lib/services/hrm.service";
-import { apiFetch, apiList, ApiError, PagedResult } from "./apiClient";
+import { apiFetch, apiList, ApiError, PagedResult, tokenStore } from "./apiClient";
 import { AttendanceToday, toEmployeeRecord } from "./mappers/employee";
 import { BranchService } from "./branchService";
 
@@ -18,65 +18,91 @@ export interface Lookup {
 
 export class HrmService {
   /**
-   * The employees table.
+   * The employees table, one page at a time.
    *
-   * Searched, filtered and paged here, because the endpoint takes only `limit`
-   * and `page`. Loading everyone at once keeps the search, the filter and the
-   * pager agreeing. A search on the server is the real fix.
+   * The search, the department filter and the page all go to the API now. This
+   * used to load everyone at once and sift them in the browser — its own
+   * comment called a server-side search "the real fix" — and because a page is
+   * capped at 200, a search past that simply could not see the rest of the
+   * staff.
    */
   static async getEmployees(params?: HrmQueryFilter): Promise<PagedResult<EmployeeRecord>> {
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 8;
 
+    const today = new Date();
+    const localDay =
+      params?.day ??
+      new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+    const query = new URLSearchParams();
+    if (params?.search) query.set("search", params.search);
+    if (params?.department) query.set("department", params.department);
+    // Present / On Leave / Absent is about a DAY, so the day goes with it.
+    // This used to be sent as `status`, which the API read as the employee's
+    // active flag — "Present" matched neither Active nor Inactive, so the
+    // filter was silently dropped and every employee came back.
+    if (params?.status) {
+      query.set("attendance_status", params.status);
+      query.set("day", localDay);
+    }
+    query.set("page", String(page));
+    query.set("limit", String(limit));
+
+    // One day only. This asked for every attendance record ever written and
+    // matched them by employee, so whichever row came back first decided what
+    // the table said someone was doing today. Which day is the caller's
+    // business — the screen has a date picker that was setting a value nothing
+    // read.
+
     const [employees, attendance] = await Promise.all([
       apiList<any>(
-        "/hrm/employees/?limit=500",
+        `/hrm/employees/?${query.toString()}`,
         { method: "GET" },
         { data: initialEmployeesData as any[], total: initialEmployeesData.length },
         (r) => r
       ),
-      apiList<any>("/hrm/attendance/?limit=500", { method: "GET" }, { data: [], total: 0 }, (r) => r).catch(
-        () => ({ data: [] as any[] })
-      ),
+      apiList<any>(
+        `/hrm/attendance/?date_from=${localDay}&date_to=${localDay}&limit=200`,
+        { method: "GET" },
+        { data: [], total: 0 },
+        (r) => r
+      ).catch(() => ({ data: [] as any[] })),
     ]);
 
     // Sample rows are already in the right shape, so there is nothing to join.
-    const mapped: EmployeeRecord[] = employees.data[0]?.status
-      ? (employees.data as EmployeeRecord[])
-      : (() => {
-          const byEmployee = new Map<string, AttendanceToday>();
-          for (const a of attendance.data || []) {
-            const key = String(a?.employee ?? "");
-            if (key) {
-              byEmployee.set(key, { status: a?.status, checkIn: a?.checkIn, checkOut: a?.checkOut });
-            }
-          }
-          return employees.data.map((row: any, i: number) =>
-            toEmployeeRecord(row, i + 1, byEmployee.get(String(row?.id)))
-          );
-        })();
+    if (employees.data[0]?.status) {
+      const rows = employees.data as EmployeeRecord[];
+      return {
+        data: rows.slice((page - 1) * limit, page * limit),
+        total: rows.length,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(rows.length / limit)),
+      };
+    }
 
-    const needle = params?.search?.trim().toLowerCase();
-    const filtered = mapped.filter((e) => {
-      if (params?.status && e.status.toLowerCase() !== params.status.toLowerCase()) return false;
-      if (params?.department && e.department.toLowerCase() !== params.department.toLowerCase()) {
-        return false;
+    // First wins, and the API returns newest first. This used to `set`
+    // unconditionally, so every older row overwrote the newer one and the
+    // OLDEST attendance record decided what the table showed — a check-in
+    // saved a minute ago lost to one from last week.
+    const byEmployee = new Map<string, AttendanceToday>();
+    for (const a of attendance.data || []) {
+      const key = String(a?.employee ?? "");
+      if (key && !byEmployee.has(key)) {
+        byEmployee.set(key, { status: a?.status, checkIn: a?.checkIn, checkOut: a?.checkOut });
       }
-      if (!needle) return true;
-      return (
-        e.name.toLowerCase().includes(needle) ||
-        e.department.toLowerCase().includes(needle) ||
-        e.designation.toLowerCase().includes(needle)
-      );
-    });
+    }
 
     const offset = (page - 1) * limit;
     return {
-      data: filtered.slice(offset, offset + limit),
-      total: filtered.length,
+      data: employees.data.map((row: any, i: number) =>
+        toEmployeeRecord(row, offset + i + 1, byEmployee.get(String(row?.id)))
+      ),
+      total: employees.total,
       page,
       limit,
-      totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
+      totalPages: Math.max(1, Math.ceil(employees.total / limit)),
     };
   }
 
@@ -123,7 +149,14 @@ export class HrmService {
         department: departmentId,
       }));
 
+    // The branch this person works in, and it is not decorative: the employee
+    // list is branch-scoped, so this decides whose staff list they appear on.
+    // The branch the administrator is STANDING in, not `branches[0]` — that
+    // was whichever branch sorted first, so adding somebody while working in
+    // Chattogram filed them in Dhaka and they vanished from the page that
+    // created them.
     const branches = await BranchService.list();
+    const branchId = tokenStore.branch() || branches[0]?.id;
 
     const row = await apiFetch<any>("/hrm/employees/", {
       method: "POST",
@@ -134,9 +167,13 @@ export class HrmService {
         last_name: rest.join(" ") || first,
         email: payload.email,
         phone: payload.phone || "",
-        branch: branches[0]?.id,
-        department: departmentId,
-        designation: designationId,
+        // `_id`, all three. The write shape is EmployeeCreateSerializer, whose
+        // fields are `branch_id`, `department_id` and `designation_id` — sent
+        // without the suffix they are three missing required fields, and every
+        // Add Employee ended in a 400 naming columns the form does not show.
+        branch_id: branchId,
+        department_id: departmentId,
+        designation_id: designationId,
         date_of_joining: new Date().toISOString().slice(0, 10),
       }),
     });
@@ -150,11 +187,18 @@ export class HrmService {
    */
   static async clock(employeeId: string, direction: "in" | "out", time?: string): Promise<void> {
     const field = direction === "in" ? "check_in" : "check_out";
+    // The shop's date, not UTC. `toISOString()` is UTC, so in Dhaka (+6)
+    // anything clocked before 06:00 was written against YESTERDAY and then
+    // never appeared on today's row.
+    const now = new Date();
+    const localDay = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 10);
     await apiFetch(`/hrm/attendance/check-${direction}/`, {
       method: "POST",
       body: JSON.stringify({
         employee_id: employeeId,
-        date: new Date().toISOString().slice(0, 10),
+        date: localDay,
         ...(time ? { [field]: `${time}:00` } : {}),
       }),
     });

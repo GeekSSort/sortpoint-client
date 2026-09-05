@@ -7,6 +7,7 @@ import { SupplierService } from "@/services";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import TablePagination from "@/components/shared/TablePagination";
+import TableSkeleton from "@/components/shared/TableSkeleton";
 import Avatar from "@/components/shared/Avatar";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY, RED_GRADIENT } from "@/components/shared/Modal";
 
@@ -86,12 +87,43 @@ export default function SuppliersPage() {
   const [deleteOf, setDeleteOf] = useState<SupplierRecord | null>(null);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  /** The debounce is for typing. Waiting 250ms to make the FIRST request
+      just adds a quarter second of blank table on reload. */
+  const firstLoad = useRef(true);
+  /** The API's count of everything matching, not of what this page holds. */
+  const [total, setTotal] = useState(0);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    SupplierService.getSuppliers({ search: query })
-      .then((res) => setSuppliers(res.data))
-      .catch(() => {});
-  }, [query]);
+    // Debounced and guarded: a request per keystroke let a slow answer for
+    // "ac" land after "acme" and repopulate the table with the wrong rows.
+    // Status goes to the API too, and so does the page.
+    let live = true;
+    const id = setTimeout(() => {
+      setLoading(true);
+      SupplierService.getSuppliers({
+        search: query,
+        status: status === "All" ? undefined : status,
+        page,
+        limit: pageSize,
+      })
+        .then((res) => {
+          if (!live) return;
+          setSuppliers(res.data);
+          setTotal(res.total);
+          setFailed(false);
+        })
+        .catch(() => live && setFailed(true))
+        .finally(() => live && setLoading(false));
+    }, firstLoad.current ? 0 : 250);
+    firstLoad.current = false;
+    return () => {
+      live = false;
+      clearTimeout(id);
+    };
+  }, [query, status, refresh, page, pageSize]);
 
   // The funnel popover closes on an outside click or Escape, like every other
   // popover in the app.
@@ -109,16 +141,10 @@ export default function SuppliersPage() {
     };
   }, [filterOpen]);
 
-  const visible = useMemo(
-    () => suppliers.filter((s) => status === "All" || s.status === status),
-    [suppliers, status]
-  );
-  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, totalPages);
-  const rows = useMemo(
-    () => visible.slice((current - 1) * pageSize, current * pageSize),
-    [visible, current, pageSize]
-  );
+  // The server already filtered and sliced. `rows` is the page.
+  const rows = suppliers;
 
   const patch = (id: string, next: Partial<SupplierRecord>) =>
     setSuppliers((list) => list.map((s) => (s.id === id ? { ...s, ...next } : s)));
@@ -224,9 +250,14 @@ export default function SuppliersPage() {
               </div>
 
               <div className="mt-[6px]">
-                {rows.length === 0 && (
+                {rows.length === 0 && loading && (
+                  <TableSkeleton columns={GRID} rows={pageSize} />
+                )}
+                {rows.length === 0 && !loading && (
                   <p className="py-[40px] text-center text-[14px] text-[#525252]">
-                    No suppliers match that search or filter.
+                    {failed
+                      ? "Suppliers could not be loaded. Refresh to try again."
+                      : "No suppliers match that search or filter."}
                   </p>
                 )}
                 {rows.map((s, i) => (
@@ -316,7 +347,7 @@ export default function SuppliersPage() {
           <TablePagination
             page={current}
             pageSize={pageSize}
-            total={visible.length}
+            total={total}
             onPageChange={setPage}
             onPageSizeChange={(n) => {
               setPageSize(n);

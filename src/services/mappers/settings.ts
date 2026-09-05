@@ -23,6 +23,7 @@ export function toCompanyProfile(row: any, fallback: CompanyProfile): CompanyPro
     businessType: String(org.legalName || org.legal_name || ""),
     companyEmail: String(org.email || ""),
     phoneNumber: String(org.phone || ""),
+    address: String(org.address || ""),
     website: String(org.website || ""),
     taxId: String(org.taxNumber || org.tax_number || ""),
     tradeLicenseBin: String(org.tradeLicense || org.trade_license || ""),
@@ -38,6 +39,7 @@ export function toOrganizationPayload(profile: Partial<CompanyProfile>): Record<
   if (profile.businessType !== undefined) body.legal_name = profile.businessType;
   if (profile.companyEmail !== undefined) body.email = profile.companyEmail;
   if (profile.phoneNumber !== undefined) body.phone = profile.phoneNumber;
+  if (profile.address !== undefined) body.address = profile.address;
   if (profile.taxId !== undefined) body.tax_number = profile.taxId;
   if (profile.logoUrl !== undefined) body.logo_url = profile.logoUrl;
   return body;

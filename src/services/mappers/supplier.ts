@@ -9,9 +9,25 @@ import { formatMoney } from "@/lib/format";
  * showed — the two names that happen to match — and every money column was
  * blank.
  *
- * Total purchases and the last purchase date are not on the supplier. The
- * caller sums them from the purchase list it already has.
+ * Total purchases and the last purchase date come from the API, which
+ * annotates them onto the list with a single aggregate. They used to be summed
+ * in the browser from a separate fetch of the purchase list — which the API
+ * caps at 200 rows, so every figure was really "of the last 200 purchases in
+ * the shop".
  */
+
+const WHEN = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+function whenOf(value: unknown): string {
+  const raw = String(value ?? "");
+  if (!raw) return "—";
+  const at = new Date(raw);
+  return Number.isNaN(at.getTime()) ? raw : WHEN.format(at);
+}
 
 export interface PurchaseTotals {
   total: number;
@@ -24,7 +40,10 @@ export function toSupplierRecord(
   totals?: PurchaseTotals
 ): SupplierRecord {
   const balance = toAmount(row?.currentBalance ?? row?.current_balance);
-  const purchases = totals?.total ?? 0;
+  // The server's own figure. `totals` is a fallback for the bundled sample rows.
+  const annotated = row?.totalPurchases ?? row?.total_purchases;
+  const purchases = annotated != null ? toAmount(annotated) : (totals?.total ?? 0);
+  const lastDate = row?.lastPurchaseDate ?? row?.last_purchase_date;
   return {
     id: String(row?.id ?? ""),
     index: String(index).padStart(2, "0"),
@@ -37,7 +56,7 @@ export function toSupplierRecord(
     totalPurchasesFormatted: formatMoney(purchases),
     balance,
     balanceFormatted: formatMoney(balance),
-    lastPurchase: totals?.lastDate || "—",
+    lastPurchase: lastDate ? whenOf(lastDate) : totals?.lastDate || "—",
     status: row?.isActive === false || row?.is_active === false ? "Inactive" : "Active",
   };
 }

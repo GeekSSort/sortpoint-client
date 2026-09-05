@@ -6,6 +6,7 @@ import { PayrollService } from "@/services/payrollService";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import { formatMoney } from "@/lib/format";
 import TablePagination from "@/components/shared/TablePagination";
+import TableSkeleton from "@/components/shared/TableSkeleton";
 import Avatar from "@/components/shared/Avatar";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import Modal, { GOLD_GRADIENT, MODAL_GHOST, MODAL_PRIMARY } from "@/components/shared/Modal";
@@ -285,6 +286,9 @@ export default function PayrollPage() {
                   </div>
                 )}
 
+                {loading && rows.length === 0 && (
+                  <TableSkeleton columns={GRID} rows={pageSize} />
+                )}
                 {!loading && rows.length === 0 && (
                   <div className="col-span-8 px-[12px] py-[28px] text-center text-[14px] text-[#525252]">
                     No payslips yet. Use Add New to run payroll for this month.

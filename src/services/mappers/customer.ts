@@ -9,8 +9,10 @@ import { formatMoney } from "@/lib/format";
  * the table wants `customerId` and `dueAmount`. Without this only name and
  * phone showed, because those two happen to match.
  *
- * Orders and total spent are not on the customer at all. The caller sums them
- * from the sales list it already has.
+ * Orders and total spent come from the API, which annotates them onto the list
+ * with a single aggregate. They used to be summed in the browser from a
+ * separate fetch of the sales list -- which the API caps at 200 rows, so every
+ * figure on the screen was really "of the last 200 sales in the shop".
  */
 
 const TYPE: Record<string, CustomerRecord["type"]> = {
@@ -24,9 +26,16 @@ export interface SalesTotals {
   spent: number;
 }
 
+/**
+ * `totals` is a fallback for callers that still have their own figures (the
+ * bundled sample data). The server's own annotation wins when it is present.
+ */
 export function toCustomerRecord(row: any, totals?: SalesTotals): CustomerRecord {
   const due = toAmount(row?.currentBalance ?? row?.current_balance);
-  const spent = totals?.spent ?? 0;
+  const annotatedSpent = row?.totalSpent ?? row?.total_spent;
+  const annotatedOrders = row?.orderCount ?? row?.order_count;
+  const spent = annotatedSpent != null ? toAmount(annotatedSpent) : (totals?.spent ?? 0);
+  const orders = annotatedOrders != null ? Number(annotatedOrders) || 0 : (totals?.orders ?? 0);
   return {
     id: String(row?.id ?? ""),
     customerId: String(row?.code || "—"),
@@ -34,7 +43,7 @@ export function toCustomerRecord(row: any, totals?: SalesTotals): CustomerRecord
     phone: String(row?.phone || "—"),
     email: String(row?.email || "—"),
     type: TYPE[String(row?.customerType ?? row?.customer_type ?? "").toUpperCase()] ?? "Regular",
-    orderCount: totals?.orders ?? 0,
+    orderCount: orders,
     totalSpent: spent,
     totalSpentFormatted: formatMoney(spent),
     dueAmount: due,
