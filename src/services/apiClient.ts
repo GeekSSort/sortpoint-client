@@ -195,6 +195,47 @@ export interface PagedResult<T> {
   totalPages: number;
 }
 
+/**
+ * The session is over: clear it and go to the sign-in page.
+ *
+ * The route guard in `proxy.ts` already sends a signed-out visitor to
+ * `/login?next=...`, but it only runs on a NAVIGATION. A token that expires
+ * while somebody is sitting on a page produces 401s and nothing else — the
+ * screen fills with "Your session has ended" and stays there, still showing
+ * the last data it loaded. So the one place that knows the session is
+ * finished navigates, and the guard's own contract is reused rather than
+ * duplicated: same URL, same `next`, so signing in returns them to the page
+ * they were on.
+ *
+ * `location.replace`, not `assign`: the dead page should not be a back-button
+ * away. `redirecting` guards the case where ten in-flight requests all fail at
+ * once — one navigation, not ten.
+ */
+let redirecting = false;
+
+function endSession() {
+  tokenStore.clear();
+  if (typeof window === "undefined" || redirecting) return;
+
+  const { pathname, search } = window.location;
+  // Already there, or on the way. Redirecting from /login would loop.
+  if (pathname === "/login" || pathname.startsWith("/login/")) return;
+
+  redirecting = true;
+  const next = `${pathname}${search}`;
+  window.location.replace(pathname === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`);
+}
+
+/**
+ * Codes that mean "this token is finished", as opposed to "this request was
+ * refused". A 401 on an authenticated request is the first kind by default:
+ * the endpoint let us try, and the credential is what failed.
+ *
+ * TENANT_MISMATCH is a 403 and belongs here anyway — the token is valid but
+ * for a different company's address, and no retry from this page can fix it.
+ */
+const DEAD_SESSION_CODES = new Set(["TENANT_MISMATCH", "REALM_MISMATCH"]);
+
 async function request<T>(
   endpoint: string,
   options: ApiFetchOptions,
@@ -247,6 +288,13 @@ async function request<T>(
     if (refreshed) return request<T>(endpoint, options, false);
   }
 
+  // Nothing left to try with. An anonymous call is exempt on purpose: a wrong
+  // password on the sign-in form is a 401 too, and bouncing the person off the
+  // page they are typing into would be absurd.
+  if (!anonymous && (response.status === 401 || DEAD_SESSION_CODES.has(body?.code))) {
+    endSession();
+  }
+
   throw new ApiError(
     response.status,
     body?.code || "HTTP_ERROR",
@@ -277,9 +325,10 @@ async function tryRefresh(): Promise<boolean> {
       tokenStore.set(access, body?.data?.refresh);
       return true;
     } catch {
-      // The server killed the whole token family, so there is nothing left to
-      // retry with. Drop the tokens instead of looping.
-      tokenStore.clear();
+      // The server killed the whole token family — a reused refresh token does
+      // exactly this — so there is nothing left to retry with. End the session
+      // rather than looping, and say so by going to the sign-in page.
+      endSession();
       return false;
     } finally {
       refreshInFlight = null;
