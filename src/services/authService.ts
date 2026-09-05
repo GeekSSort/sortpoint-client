@@ -13,6 +13,12 @@ export interface UserSession {
   email: string;
   avatar: string;
   role: string;
+  /**
+   * The branch the server has this person standing in, or null for the whole
+   * company. Screens that show branch-scoped lists say which branch they are
+   * showing — a narrowed list with no label reads as missing data.
+   */
+  activeBranch: { id: string; code: string; name: string } | null;
   token?: string;
 }
 
@@ -48,7 +54,7 @@ interface MeResponse {
   email?: string;
   fullName?: string;
   roles?: string[];
-  activeBranch?: { id?: string } | null;
+  activeBranch?: { id?: string; code?: string; name?: string } | null;
   organization?: { id?: string; name?: string } | null;
   permissions?: string[];
 }
@@ -142,6 +148,13 @@ export class AuthService {
       role: me.roles?.[0] || (resolveRealm() === "platform" ? "Platform staff" : "Staff"),
       token: tokenStore.access() || undefined,
       permissions: me.permissions ?? [],
+      activeBranch: me.activeBranch?.id
+        ? {
+            id: me.activeBranch.id,
+            code: me.activeBranch.code || "",
+            name: me.activeBranch.name || "",
+          }
+        : null,
       home: homeFor(me.permissions),
     };
   }

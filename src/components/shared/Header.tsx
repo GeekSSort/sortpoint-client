@@ -6,7 +6,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { AuthService, NotificationService } from "@/services";
-import { useSession } from "@/services/useSession";
+import { useSession, clearSessionCache } from "@/services/useSession";
+import BranchSwitcher from "./BranchSwitcher";
 import { NotificationItem } from "@/types/notifications";
 import { useSidebar } from "./SidebarContext";
 
@@ -204,6 +205,20 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
     router.push("/login");
   };
 
+  /**
+   * A branch switch changes the answer to every request on the page.
+   *
+   * The token is new, the permission set in it is new, and every list on
+   * screen was fetched under the old one — so the page is reloaded rather
+   * than patched. `router.refresh()` would not do it: these are client pages
+   * that fetch in effects, and nothing would re-run. Leaving half the screen
+   * showing the previous branch's rows is the failure worth avoiding here.
+   */
+  const onBranchSwitched = useCallback(() => {
+    clearSessionCache();
+    window.location.reload();
+  }, []);
+
   return (
     <>
     <header className="flex w-full items-center justify-between px-[16px] py-[16px] select-none sm:px-[24px]">
@@ -220,6 +235,14 @@ export default function Header({ title, subtitle, user }: HeaderProps) {
 
       {/* Menu — 30:15362 */}
       <div ref={menuRef} className="relative flex shrink-0 items-center gap-[12px]">
+        {/* The branch cursor lives here rather than on one page because it is
+            not a filter on one screen: it is server-side state, and every
+            branch-scoped list in the app answers differently once it moves.
+            Reachable from wherever you notice you are in the wrong branch. */}
+        <div className="hidden sm:block">
+          <BranchSwitcher onChange={onBranchSwitched} />
+        </div>
+
         <button
           type="button"
           onClick={toggleSidebar}
