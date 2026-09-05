@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { ProductCategory, ProductItem } from "@/types/pos";
+import ProductPeek, { PeekAnchor } from "./ProductPeek";
 import { PosService } from "@/services";
 import TablePagination from "@/components/shared/TablePagination";
 
@@ -72,6 +73,14 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
+  const [peeked, setPeeked] = useState<PeekAnchor | null>(null);
+
+  /** Remember which tile the pointer is on, and where it sits on screen. */
+  const peek = (product: ProductItem, el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setPeeked({ product, rect: { top: r.top, left: r.left, right: r.right, bottom: r.bottom } });
+  };
+
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [category, setCategory] = useState<ProductCategory>("All Categories");
 
@@ -166,13 +175,28 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
       </div>
 
       {/* Grid — 45:2197, 24px below the category row */}
+      <ProductPeek anchor={peeked} />
+
       <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-[12.5px] gap-y-[14px]">
-        {shown.map((p) => (
+        {shown.map((p) => {
+          // The server refuses to sell what is not on the shelf, so the till
+          // should not let a cashier add it and find out at payment.
+          const soldOut = p.stock <= 0;
+          return (
           <button
             key={p.id}
             type="button"
+            disabled={soldOut}
+            // Hovering opens the details card beside the tile. Focus does the
+            // same, so a keyboard reaches it too.
+            onMouseEnter={(e) => peek(p, e.currentTarget)}
+            onFocus={(e) => peek(p, e.currentTarget)}
+            onMouseLeave={() => setPeeked(null)}
+            onBlur={() => setPeeked(null)}
             onClick={() => onSelectProduct?.(p)}
-            className="flex cursor-pointer items-center overflow-clip rounded-[10px] border-[0.6px] border-solid border-[#eaeaea] bg-white p-[10px] text-left transition-colors hover:border-[#f5b800]"
+            className={`flex items-center overflow-clip rounded-[10px] border-[0.6px] border-solid border-[#eaeaea] bg-white p-[10px] text-left transition-colors ${
+              soldOut ? "cursor-not-allowed opacity-55" : "cursor-pointer hover:border-[#f5b800]"
+            }`}
           >
             <div className="flex w-full flex-col items-center justify-center gap-[12px]">
               <div className="relative aspect-square w-full overflow-hidden rounded-[8px] border-[0.3px] border-solid border-[#eaeaea] bg-[#fafafa]">
@@ -198,17 +222,27 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
                   <span className="text-[16px] leading-[24px] font-medium whitespace-nowrap text-[#f5b800]">
                     {p.priceFormatted}
                   </span>
-                  <span className="flex h-[24px] shrink-0 items-center gap-[7px] overflow-clip rounded-[17px] bg-[#f5fff8] px-[8px]">
-                    <span className="size-[6px] shrink-0 rounded-full bg-[#00b837]" />
-                    <span className="text-[12px] leading-normal font-normal tracking-[-0.24px] whitespace-nowrap text-[#00b837]">
-                      Stock {p.stock}
+                  <span
+                    className="flex h-[24px] shrink-0 items-center gap-[7px] overflow-clip rounded-[17px] px-[8px]"
+                    style={{ backgroundColor: soldOut ? "#ffdfe2" : "#f5fff8" }}
+                  >
+                    <span
+                      className="size-[6px] shrink-0 rounded-full"
+                      style={{ backgroundColor: soldOut ? "#e63946" : "#00b837" }}
+                    />
+                    <span
+                      className="text-[12px] leading-normal font-normal tracking-[-0.24px] whitespace-nowrap"
+                      style={{ color: soldOut ? "#e63946" : "#00b837" }}
+                    >
+                      {soldOut ? "None left" : `Stock ${p.stock}`}
                     </span>
                   </span>
                 </div>
               </div>
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

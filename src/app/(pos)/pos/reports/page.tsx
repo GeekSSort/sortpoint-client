@@ -8,6 +8,7 @@ import ProfitLossChart from "@/components/modules/dashboard/ProfitLossChart";
 import StatusPill, { Tone } from "@/components/shared/StatusPill";
 import RowActionMenu from "@/components/shared/RowActionMenu";
 import TablePagination from "@/components/shared/TablePagination";
+import TableSkeleton from "@/components/shared/TableSkeleton";
 import Modal, { MODAL_GHOST } from "@/components/shared/Modal";
 import { DashboardService, PosService, CustomerService, initialDashboardData } from "@/services";
 import { DashboardResponse, MetricCardData } from "@/types/dashboard";
@@ -110,6 +111,8 @@ export default function PosReportsPage() {
   const [pageSize, setPageSize] = useState(8);
   const [note, setNote] = useState<string | null>(null);
   const [detailOf, setDetailOf] = useState<CustomerRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     DashboardService.getDashboardData()
@@ -121,9 +124,21 @@ export default function PosReportsPage() {
   }, []);
 
   useEffect(() => {
+    // Guarded so a slow answer for "ra" cannot land after "rahman" and
+    // repopulate the table with the wrong rows.
+    let live = true;
+    setLoading(true);
     CustomerService.getCustomers({ search: query })
-      .then((res) => setCustomers(res.data))
-      .catch(() => {});
+      .then((res) => {
+        if (!live) return;
+        setCustomers(res.data);
+        setFailed(false);
+      })
+      .catch(() => live && setFailed(true))
+      .finally(() => live && setLoading(false));
+    return () => {
+      live = false;
+    };
   }, [query]);
 
   const metrics = useMemo(() => branchMetrics(data), [data]);
@@ -233,7 +248,10 @@ export default function PosReportsPage() {
               </div>
 
               <div className="mt-[6px]">
-                {rows.length === 0 && (
+                {rows.length === 0 && loading && (
+                  <TableSkeleton columns={GRID} rows={pageSize} />
+                )}
+                {rows.length === 0 && !loading && (
                   <p className="py-[40px] text-center text-[14px] text-[#525252]">
                     No customers match that search.
                   </p>
