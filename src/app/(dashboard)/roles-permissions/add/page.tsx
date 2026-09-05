@@ -4,7 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RoleService, RoleOption } from "@/services/roleService";
 import { HrmService } from "@/services/hrmService";
+import { BranchService } from "@/services/branchService";
+import { tokenStore } from "@/services/apiClient";
 import { EmployeeRecord } from "@/types/hrm";
+import { Branch } from "@/types/branch";
 import { GOLD_GRADIENT } from "@/components/shared/Modal";
 
 /**
@@ -13,6 +16,12 @@ import { GOLD_GRADIENT } from "@/components/shared/Modal";
  * A 565px card centred on the page: a title strip, then 56px fields at 12px
  * apart, and a full-width gold submit below the card. Picking an employee
  * fills the contact details, because the person already exists in HRM.
+ *
+ * Branch is asked for, and it is not cosmetic: it decides whose staff list
+ * this person appears in. Left as "whole company" they are org-wide and show
+ * up in every branch, which is right for an owner or an accountant and wrong
+ * for a cashier. The picker only offers branches the server says this
+ * administrator may act in — naming another one is a 404, by design.
  */
 
 const LABEL = "w-full text-[18px] leading-[24px] font-medium text-[#525252]";
@@ -132,7 +141,9 @@ export default function AddUserPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
   const [department, setDepartment] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -141,15 +152,21 @@ export default function AddUserPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [people, roleList, lookups] = await Promise.all([
+      const [people, roleList, lookups, branchList] = await Promise.all([
         HrmService.getEmployees({ limit: 500 }).catch(() => ({ data: [] as EmployeeRecord[] })),
         RoleService.getRoles().catch(() => [] as RoleOption[]),
         HrmService.getLookups().catch(() => ({ departments: [], designations: [] })),
+        BranchService.list().catch(() => [] as Branch[]),
       ]);
       if (cancelled) return;
       setEmployees(people.data);
       setRoles(roleList);
       setDepartments(lookups.departments.map((d) => d.name));
+      setBranches(branchList);
+      // Default to the branch this administrator is standing in — the branch
+      // whose list they were looking at when they pressed Add New.
+      const active = tokenStore.branch();
+      if (active && branchList.some((b) => b.id === active)) setBranchId(active);
     })();
     return () => {
       cancelled = true;
@@ -168,7 +185,13 @@ export default function AddUserPage() {
     setError(null);
     setSaving(true);
     try {
-      await RoleService.createUser({ name: employee, phone, mail: email, role });
+      await RoleService.createUser({
+        name: employee,
+        phone,
+        mail: email,
+        role,
+        branchId: branchId || undefined,
+      });
       router.push("/roles-permissions");
     } catch (err) {
       setError(RoleService.describeError(err));
@@ -241,6 +264,29 @@ export default function AddUserPage() {
               options={roles.map((r) => r.name)}
               caret
             />
+
+            <div className="flex w-full flex-col gap-[8px]">
+              <label className={LABEL} htmlFor="user-branch">
+                Branch
+              </label>
+              <select
+                id="user-branch"
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                className={`${INPUT} cursor-pointer`}
+              >
+                <option value="">Whole company (no branch)</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.code} · {b.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[13px] leading-[1.5] text-[#525252]">
+                They appear in this branch&apos;s user list. &ldquo;Whole company&rdquo; is for
+                head-office accounts, who appear in every branch.
+              </p>
+            </div>
 
             <PickerField
               label="Department"

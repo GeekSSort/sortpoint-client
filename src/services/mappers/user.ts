@@ -31,6 +31,9 @@ export function toSystemUser(row: any, index: number): SystemUserRecord {
     phone: String(row?.phone || "—"),
     mail: String(row?.email || "—"),
     role: roles.length > 1 ? `${roles[0]} +${roles.length - 1}` : roles[0] || "—",
+    // The names themselves, beside the label. The label is lossy on purpose
+    // and cannot be turned back into them.
+    roles,
     lastLogin: toLastLogin(row?.lastLogin),
     status: row?.isActive === false ? "Inactive" : "Active",
   };
